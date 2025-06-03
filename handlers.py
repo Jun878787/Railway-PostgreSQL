@@ -1147,16 +1147,13 @@ class BotHandlers:
             
             # Create dynamic emojis based on performance
             performance_emoji = "🚀" if total_usdt > 50000 else "💪" if total_usdt > 30000 else "📈"
-            currency_tw_emoji = "💎" if tw_total > 1500000 else "💰"
-            currency_cn_emoji = "🏆" if cn_total > 15000 else "💵"
             
-            # Format fleet report with dynamic elements
+            # Format fleet report with clean formatting
             report = f"""【{performance_emoji} North™Sea 北金國際 - {month_name}車隊報表】
-<b>{currency_tw_emoji} 台幣業績</b>
+<b>◉ 台幣業績</b>
 <code>NT${tw_total:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>
-<b>{currency_cn_emoji} 人民幣業績</b>
+<b>◉ 人民幣業績</b>
 <code>CN¥{cn_total:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>
-<b>🎯 總計USDT: ${total_usdt:,.2f}</b>
 －－－－－－－－－－"""
 
             # Sort dates for consistent ordering

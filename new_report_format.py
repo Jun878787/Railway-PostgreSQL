@@ -84,11 +84,10 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
         
         report_lines = [
             f"<b>【{main_emoji} {clean_group_name} - {year}年{month}月群組報表】</b>",
-            f"<b>{tw_emoji} 台幣業績</b>",
+            f"<b>◉ 台幣業績</b>",
             f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
-            f"<b>{cn_emoji} 人民幣業績</b>",
+            f"<b>◉ 人民幣業績</b>",
             f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
-            f"<b>🎯 總計USDT: ${total_usdt:,.2f} ({performance_note})</b>",
             "－－－－－－－－－－"
         ]
         
