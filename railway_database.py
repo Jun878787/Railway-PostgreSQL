@@ -18,10 +18,18 @@ class RailwayDatabaseManager:
     def __init__(self):
         self.database_url = os.getenv('DATABASE_URL', '')
         if not self.database_url:
-            raise ValueError("DATABASE_URL environment variable not found")
+            print("警告: DATABASE_URL 未設定，等待 PostgreSQL 服務啟動...")
+            # 不立即失敗，允許服務在稍後連接
+            self.database_url = None
+            self._lock = asyncio.Lock()
+            return
         
         self._lock = asyncio.Lock()
-        self.init_database()
+        try:
+            self.init_database()
+        except Exception as e:
+            print(f"資料庫初始化失敗: {e}")
+            # 繼續運行，稍後重試
     
     def get_connection(self):
         """Get database connection"""

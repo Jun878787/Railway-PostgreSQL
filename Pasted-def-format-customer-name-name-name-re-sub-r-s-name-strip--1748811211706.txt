@@ -1,0 +1,205 @@
+def format_customer_name(name):
+    """格式化客戶姓名"""
+    name = re.sub(r'姓名[：:]\s*', '', name).strip()
+    if len(name) == 1:
+        return f"{name}Ms.R"
+    else:
+        return name[:3]
+
+def format_amount(text):
+    """格式化金額"""
+    # 匹配金額格式
+    patterns = [
+        r'(\d+\.?\d*)萬現金',
+        r'(\d+\.?\d*)萬',
+        r'金額[：:]\s*(\d+\.?\d*)萬',
+        r'預約金額[：:]\s*(\d+\.?\d*)萬',
+        r'存入操作金額[：:]\s*(\d+\.?\d*)萬',
+        r'(\d+\.?\d*)克'
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            amount = float(match.group(1))
+            if '克' in pattern:
+                return f"{amount}克"
+            return f"{amount:.1f}萬"
+    return None
+
+def format_time(text):
+    """格式化時間"""
+    # 檢查是否包含時間標記
+    is_afternoon = '下午' in text or '晚上' in text
+    
+    # 匹配時間格式
+    time_patterns = [
+        r'(\d{1,2})[點:：](\d{1,2})?',
+        r'(\d{1,2})[.:](\d{2})',
+        r'(\d{1,2})[:：](\d{2})',
+        r'(\d{1,2})時(\d{1,2})?分?'
+    ]
+    
+    for pattern in time_patterns:
+        match = re.search(pattern, text)
+        if match:
+            hour = int(match.group(1))
+            if is_afternoon and hour < 12:
+                hour += 12
+            minute = int(match.group(2)) if match.group(2) else 0
+            return f"{hour:02d}:{minute:02d}"
+    return None
+
+def format_address(text):
+    """格式化地址，只保留縣市和鄉鎮市區"""
+    # 移除括號內的內容和公司地址
+    text = re.sub(r'\（.*?\）|\(.*?\)', '', text)
+    text = re.sub(r'公司地址[：:]\s*', '', text)
+    
+    # 匹配縣市和鄉鎮市區
+    city_pattern = r'[^\s]{2,3}[縣市]'
+    district_pattern = r'[^\s]{2,3}[鄉鎮市區]'
+    
+    city_match = re.search(city_pattern, text)
+    district_match = re.search(district_pattern, text)
+    
+    if city_match and district_match:
+        return f"{city_match.group()}{district_match.group()}"
+    
+    # 如果看起來像地標，嘗試使用 Google Maps API
+    if gmaps:
+        location = get_location_from_landmark(text)
+        if location:
+            return location
+    
+    return None
+
+def format_company(text):
+    """格式化公司名稱"""
+    # 移除常見的公司後綴
+    text = re.sub(r'公司名稱[：:]\s*', '', text)
+    text = re.sub(r'[股份有限公司創投集團控股].*$', '', text)
+    company = text.strip()
+    return f"{company[:2]}投資" if company else None
+
+def parse_list_message(text):
+    """解析列表訊息內容"""
+    result = {
+        'customer': '',
+        'amount': '',
+        'time': '',
+        'address': '',
+        'company': ''
+    }
+    
+    lines = text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # 尋找客戶名稱
+        if '姓名' in line:
+            result['customer'] = format_customer_name(line)
+            
+        # 尋找金額
+        if any(keyword in line for keyword in ['金額', '萬', '克']):
+            amount = format_amount(line)
+            if amount:
+                result['amount'] = amount
+            
+        # 尋找時間
+        if any(keyword in line for keyword in ['時間', '點', '：', ':', '時']):
+            time = format_time(line)
+            if time:
+                result['time'] = time
+            
+        # 尋找地址
+        if any(keyword in line for keyword in ['地點', '地址']):
+            address = format_address(line)
+            if address:
+                result['address'] = address
+            
+        # 尋找公司名稱
+        if '公司' in line and '地址' not in line:
+            company = format_company(line)
+            if company:
+                result['company'] = company
+    
+    return result
+
+# 初始化列表格式化器
+list_formatter = ListFormatter()
+
+@bot.message_handler(func=lambda message: 
+    message.text and message.text.strip() == '列表' and 
+    message.reply_to_message and 
+    message.reply_to_message.text,
+    content_types=['text'])
+@error_handler
+def handle_list_format(message):
+    """處理列表格式化命令"""
+    try:
+        # 獲取被回覆的訊息內容
+        original_text = message.reply_to_message.text
+        
+        # 驗證文本格式
+        if not list_formatter.validate_format(original_text):
+            bot.reply_to(message, "❌ 無法識別列表格式，請確保訊息包含必要信息（客戶、金額、時間、地址、公司）")
+            return
+        
+        # 格式化列表
+        result = list_formatter.format_list(original_text)
+        if not result:
+            bot.reply_to(message, "❌ 處理列表時發生錯誤")
+            return
+        
+        # 發送格式化後的訊息
+        bot.reply_to(message, result['formatted_text'])
+        
+        # 如果有缺少的字段，發送提示
+        if result['missing_fields']:
+            warning_text = "⚠️ 注意：以下資訊未能識別：\n" + "\n".join(f"- {field}" for field in result['missing_fields'])
+            bot.reply_to(message, warning_text)
+        
+        logger.info(f"用戶 {message.from_user.username or message.from_user.id} 格式化了一條列表")
+        
+    except Exception as e:
+        logger.error(f"處理列表格式化時出錯: {str(e)}")
+        bot.reply_to(message, "❌ 處理訊息時發生錯誤")
+
+# 添加列表格式說明命令
+@bot.message_handler(commands=['list_help'])
+@error_handler
+def handle_list_help(message):
+    """顯示列表格式說明"""
+    help_text = """📝 列表格式說明
+    
+支持的格式：
+1. 標準格式：
+客戶：張三
+金額：1000
+時間：9/1
+地址：台北市
+公司：ABC公司
+
+2. 簡化格式：
+張三 1000元 9/1 台北市 ABC公司
+
+使用方法：
+1. 發送包含以上信息的訊息
+2. 回覆該訊息輸入「列表」
+
+🔍 支持的字段標識：
+- 客戶/姓名/名字
+- 金額/費用/價格
+- 時間/日期
+- 地址/位置/地點
+- 公司/單位
+
+⚠️ 注意：
+- 未識別的信息將顯示為「未知」
+- 時間格式支持：MM/DD 或 MM-DD
+- 金額支持：純數字或帶單位（元/NT/NTD）"""
+
+    bot.reply_to(message, help_text)

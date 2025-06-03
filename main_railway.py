@@ -58,8 +58,22 @@ def main():
     try:
         logger.info("🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...")
         
-        # Initialize database
-        db_manager = DatabaseManager()
+        # Initialize database with Railway PostgreSQL support
+        try:
+            if os.getenv('DATABASE_URL'):
+                logger.info("🔗 Connecting to PostgreSQL database...")
+                from railway_database import RailwayDatabaseManager
+                db_manager = RailwayDatabaseManager()
+                logger.info("✅ PostgreSQL database connected successfully")
+            else:
+                logger.info("📁 Using SQLite database (DATABASE_URL not found)")
+                from database import DatabaseManager
+                db_manager = DatabaseManager()
+        except Exception as e:
+            logger.error(f"❌ Database initialization failed: {e}")
+            logger.info("🔄 Falling back to SQLite database...")
+            from database import DatabaseManager
+            db_manager = DatabaseManager()
         
         # Create application
         bot_token = config.get_bot_token()
