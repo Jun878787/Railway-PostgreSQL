@@ -160,7 +160,7 @@ class FleetReportFormatter:
                             group_line_parts.append(f"<code>CN¥0</code>")
                         
                         group_amounts = " ".join(group_line_parts)
-                        report_lines.append(f"    • {group_amounts} 👀 {group}")
+                        report_lines.append(f"    • {group_amounts} {group}")
                     
                     report_lines.append("")  # Add blank line between days
                     
