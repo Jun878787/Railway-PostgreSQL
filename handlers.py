@@ -20,7 +20,11 @@ from telegram.error import TelegramError
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import timezone_utils
 
-from database import DatabaseManager
+try:
+    from database import DatabaseManager
+except ImportError:
+    DatabaseManager = None
+
 try:
     from railway_database import RailwayDatabaseManager
 except ImportError:

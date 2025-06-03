@@ -34,15 +34,21 @@ import config
 # Choose database based on environment
 try:
     database_url = os.getenv('DATABASE_URL')
-    if database_url and database_url.startswith('postgresql'):
-        from railway_database import RailwayDatabaseManager as DatabaseManager
-        logger.info("🐘 Using PostgreSQL database for Railway deployment")
+    if database_url:
+        try:
+            from railway_database import RailwayDatabaseManager as DatabaseManager
+            logger.info("🐘 Using PostgreSQL database for Railway deployment")
+        except ImportError:
+            logger.error("❌ PostgreSQL module not found, creating fallback")
+            # Create a minimal fallback if railway_database is missing
+            raise ImportError("PostgreSQL not available")
     else:
-        from database import DatabaseManager
-        logger.info("📁 Using SQLite database")
+        logger.info("📁 DATABASE_URL not found, using SQLite fallback")
+        raise ImportError("No DATABASE_URL")
 except Exception as e:
-    logger.warning(f"Database selection error: {e}, falling back to SQLite")
-    from database import DatabaseManager
+    logger.warning(f"Database selection error: {e}, using fallback database")
+    # Import the inline database class defined below
+    DatabaseManager = None
 
 async def post_init(application):
     """Post initialization setup"""
