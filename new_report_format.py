@@ -95,12 +95,12 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "�
         
         # Build report header with proper formatting
         report_lines = [
-            f"【👀 {group_name} 2025年6月組別報表】",
-            "◉ 台幣業績",
+            f"<b>👀{group_name}  2025年6月群組報表</b>",
+            "<b>◉ 台幣業績</b>",
             f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
-            "◉ 人民幣業績", 
+            "<b>◉ 人民幣業績</b>", 
             f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
-            "－－－－－－－－－－"
+            "_____________________________"
         ]
         
         # Add daily transaction details
@@ -166,7 +166,7 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "�
                 cn_daily_usdt = cn_daily / day_cn_rate if cn_daily > 0 else 0
                 
                 # Add date header with exchange rates
-                report_lines.append(f"📅{day_key} 台幣匯率{day_tw_rate}    人民幣匯率{day_cn_rate}")
+                report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate} 人民幣匯率{day_cn_rate}</b>")
                 
                 # Add daily totals line
                 daily_line = ""

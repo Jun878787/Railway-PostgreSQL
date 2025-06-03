@@ -917,7 +917,7 @@ class BotHandlers:
             from new_report_format import format_new_group_report
             
             # Format report using updated function with daily exchange rates
-            report = format_new_group_report(
+            report = await format_new_group_report(
                 transactions,
                 chat.title or "群組",
                 self.db
@@ -1052,18 +1052,15 @@ class BotHandlers:
         """Show fleet report via callback - aggregates ALL groups"""
         try:
             from datetime import datetime
-            from utils import FleetReportFormatter
+            from fleet_report_formatter import FleetReportFormatter
             
             now = datetime.now()
             year = now.year
             month = now.month
             
-            # Get all groups transactions
-            all_groups_data = await self.db.get_all_groups_transactions(month, year)
-            
-            # Format data for fleet report formatter
-            fleet_formatter = FleetReportFormatter()
-            report = fleet_formatter.format_fleet_report(all_groups_data)
+            # Use comprehensive fleet report formatter
+            fleet_formatter = FleetReportFormatter(self.db)
+            report = await fleet_formatter.format_comprehensive_fleet_report(month, year)
             
             keyboard = BotKeyboards.get_fleet_report_keyboard()
             await query.edit_message_text(
