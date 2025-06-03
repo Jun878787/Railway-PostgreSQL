@@ -111,9 +111,10 @@ class FleetReportFormatter:
                     # Get daily exchange rates from database using proper date conversion
                     from datetime import datetime
                     date_obj = datetime.strptime(f"2025-{day_key}", "%Y-%m/%d").date()
-                    day_rates = await self.db.get_latest_exchange_rates(date_obj)
-                    day_tw_rate = day_rates.get('TWD', 30.0)  # Database returns 'TWD'
-                    day_cn_rate = day_rates.get('CNY', 7.0)   # Database returns 'CNY'
+                    
+                    # Get actual exchange rates for this specific date
+                    day_tw_rate = await self.db.get_exchange_rate(date_obj, 'TW') or 30.0
+                    day_cn_rate = await self.db.get_exchange_rate(date_obj, 'CN') or 7.0
                     
                     # Calculate USDT equivalents
                     tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
