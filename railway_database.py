@@ -33,9 +33,23 @@ class RailwayDatabaseManager:
     
     def get_connection(self):
         """Get database connection"""
+        if not self.database_url:
+            raise Exception("DATABASE_URL not available")
+        
+        # Parse the DATABASE_URL properly for Railway
+        import urllib.parse as urlparse
+        
+        # Parse the URL
+        url = urlparse.urlparse(self.database_url)
+        
         return psycopg2.connect(
-            self.database_url,
-            cursor_factory=psycopg2.extras.RealDictCursor
+            host=url.hostname,
+            port=url.port,
+            user=url.username,
+            password=url.password,
+            database=url.path[1:],  # Remove leading slash
+            cursor_factory=psycopg2.extras.RealDictCursor,
+            sslmode='require'  # Required for Railway PostgreSQL
         )
     
     def init_database(self):
