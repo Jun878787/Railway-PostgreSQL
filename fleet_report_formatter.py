@@ -108,12 +108,12 @@ class FleetReportFormatter:
                     tw_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'TW')
                     cn_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'CN')
                     
-                    # Get daily exchange rates from database
+                    # Get daily exchange rates from database using proper date conversion
                     from datetime import datetime
                     date_obj = datetime.strptime(f"2025-{day_key}", "%Y-%m/%d").date()
                     day_rates = await self.db.get_latest_exchange_rates(date_obj)
-                    day_tw_rate = day_rates.get('TWD', 30.0)
-                    day_cn_rate = day_rates.get('CNY', 7.0)
+                    day_tw_rate = day_rates.get('TWD', 30.0)  # Database returns 'TWD'
+                    day_cn_rate = day_rates.get('CNY', 7.0)   # Database returns 'CNY'
                     
                     # Calculate USDT equivalents
                     tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
@@ -136,30 +136,30 @@ class FleetReportFormatter:
                     if daily_line_parts:
                         report_lines.append(" ".join(daily_line_parts))
                     
-                    # Group transactions by user for this day
-                    user_daily_totals = {}
+                    # Group transactions by group for this day
+                    group_daily_totals = {}
                     for trans in day_trans:
-                        user = trans['user']
+                        group = trans['group']
                         
-                        if user not in user_daily_totals:
-                            user_daily_totals[user] = {'TW': 0, 'CN': 0}
-                        user_daily_totals[user][trans['currency']] += trans['amount']
+                        if group not in group_daily_totals:
+                            group_daily_totals[group] = {'TW': 0, 'CN': 0}
+                        group_daily_totals[group][trans['currency']] += trans['amount']
                     
-                    # Group transactions by user for proper display
-                    for user, amounts in user_daily_totals.items():
-                        user_line_parts = []
+                    # Display transactions grouped by group
+                    for group, amounts in group_daily_totals.items():
+                        group_line_parts = []
                         if amounts['TW'] > 0:
-                            user_line_parts.append(f"<code>NT${amounts['TW']:,.0f}</code>")
+                            group_line_parts.append(f"<code>NT${amounts['TW']:,.0f}</code>")
                         else:
-                            user_line_parts.append(f"<code>NT$0</code>")
+                            group_line_parts.append(f"<code>NT$0</code>")
                         
                         if amounts['CN'] > 0:
-                            user_line_parts.append(f"<code>CN¥{amounts['CN']:,.0f}</code>")
+                            group_line_parts.append(f"<code>CN¥{amounts['CN']:,.0f}</code>")
                         else:
-                            user_line_parts.append(f"<code>CN¥0</code>")
+                            group_line_parts.append(f"<code>CN¥0</code>")
                         
-                        user_amounts = " ".join(user_line_parts)
-                        report_lines.append(f"    • {user_amounts} 👀 {user}")
+                        group_amounts = " ".join(group_line_parts)
+                        report_lines.append(f"    • {group_amounts} 👀 {group}")
                     
                     report_lines.append("")  # Add blank line between days
                     
