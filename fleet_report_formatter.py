@@ -145,17 +145,21 @@ class FleetReportFormatter:
                             user_daily_totals[user] = {'TW': 0, 'CN': 0}
                         user_daily_totals[user][trans['currency']] += trans['amount']
                     
-                    # Add user transaction lines
+                    # Group transactions by user for proper display
                     for user, amounts in user_daily_totals.items():
                         user_line_parts = []
                         if amounts['TW'] > 0:
                             user_line_parts.append(f"<code>NT${amounts['TW']:,.0f}</code>")
+                        else:
+                            user_line_parts.append(f"<code>NT$0</code>")
+                        
                         if amounts['CN'] > 0:
                             user_line_parts.append(f"<code>CN¥{amounts['CN']:,.0f}</code>")
+                        else:
+                            user_line_parts.append(f"<code>CN¥0</code>")
                         
-                        if user_line_parts:
-                            user_amounts = " ".join(user_line_parts)
-                            report_lines.append(f"    • {user_amounts} <code>{user}</code>")
+                        user_amounts = " ".join(user_line_parts)
+                        report_lines.append(f"    • {user_amounts} 👀 {user}")
                     
                     report_lines.append("")  # Add blank line between days
                     
