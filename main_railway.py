@@ -31,24 +31,8 @@ from handlers import BotHandlers
 from keyboards import BotKeyboards
 import config
 
-# Choose database based on environment
-try:
-    database_url = os.getenv('DATABASE_URL')
-    if database_url:
-        try:
-            from railway_database import RailwayDatabaseManager as DatabaseManager
-            logger.info("🐘 Using PostgreSQL database for Railway deployment")
-        except ImportError:
-            logger.error("❌ PostgreSQL module not found, creating fallback")
-            # Create a minimal fallback if railway_database is missing
-            raise ImportError("PostgreSQL not available")
-    else:
-        logger.info("📁 DATABASE_URL not found, using SQLite fallback")
-        raise ImportError("No DATABASE_URL")
-except Exception as e:
-    logger.warning(f"Database selection error: {e}, using fallback database")
-    # Import the inline database class defined below
-    DatabaseManager = None
+# Import PostgreSQL database manager directly
+from railway_database import RailwayDatabaseManager as DatabaseManager
 
 async def post_init(application):
     """Post initialization setup"""
@@ -64,22 +48,10 @@ def main():
     try:
         logger.info("🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...")
         
-        # Initialize database with Railway PostgreSQL support
-        try:
-            if os.getenv('DATABASE_URL'):
-                logger.info("🔗 Connecting to PostgreSQL database...")
-                from railway_database import RailwayDatabaseManager
-                db_manager = RailwayDatabaseManager()
-                logger.info("✅ PostgreSQL database connected successfully")
-            else:
-                logger.info("📁 Using SQLite database (DATABASE_URL not found)")
-                from database import DatabaseManager
-                db_manager = DatabaseManager()
-        except Exception as e:
-            logger.error(f"❌ Database initialization failed: {e}")
-            logger.info("🔄 Falling back to SQLite database...")
-            from database import DatabaseManager
-            db_manager = DatabaseManager()
+        # Initialize PostgreSQL database
+        logger.info("🔗 Connecting to PostgreSQL database...")
+        db_manager = DatabaseManager()
+        logger.info("✅ PostgreSQL database connected successfully")
         
         # Create application
         bot_token = config.get_bot_token()
