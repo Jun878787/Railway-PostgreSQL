@@ -12,11 +12,11 @@ from decimal import Decimal, InvalidOperation
 logger = logging.getLogger(__name__)
 
 def fix_html_tags(text: str) -> str:
-    """Fix corrupted HTML tags that may have been converted to uppercase"""
+    """Fix corrupted HTML tags that may have been converted to uppercase or missing closing tags"""
     if not text:
         return text
     
-    # Replace common corrupted HTML tags with correct lowercase versions
+    # First, fix uppercase corrupted tags
     tag_fixes = [
         (r'<CODE>', '<code>'),
         (r'</CODE>', '</code>'),
@@ -35,6 +35,21 @@ def fix_html_tags(text: str) -> str:
     ]
     
     for pattern, replacement in tag_fixes:
+        text = re.sub(pattern, replacement, text)
+    
+    # Fix missing closing tags (e.g., <code> without </code>)
+    missing_closing_fixes = [
+        # Fix <b>text<b> -> <b>text</b>
+        (r'<b>([^<]*)<b>', r'<b>\1</b>'),
+        # Fix <code>text<code> -> <code>text</code>
+        (r'<code>([^<]*)<code>', r'<code>\1</code>'),
+        # Fix <strong>text<strong> -> <strong>text</strong>
+        (r'<strong>([^<]*)<strong>', r'<strong>\1</strong>'),
+        # Fix <i>text<i> -> <i>text</i>
+        (r'<i>([^<]*)<i>', r'<i>\1</i>'),
+    ]
+    
+    for pattern, replacement in missing_closing_fixes:
         text = re.sub(pattern, replacement, text)
     
     return text
@@ -595,19 +610,20 @@ class PersonalReportFormatter:
                     logger.warning(f"Error processing daily personal transaction: {e}")
                     continue
             
-            # Add daily summaries
+            # Add daily summaries without USDT conversion for individual dates
             for day_key in sorted(daily_transactions.keys()):
                 try:
                     amounts = daily_transactions[day_key]
                     if amounts['TW'] > 0 or amounts['CN'] > 0:
-                        report_lines.append(f"📅 {day_key}")
+                        # Format date entry with amounts only (no USDT conversion)
+                        daily_line = f"<b>{day_key} (日)</b> • "
+                        amount_parts = []
                         if amounts['TW'] > 0:
-                            daily_tw_usdt = amounts['TW'] / tw_rate
-                            report_lines.append(f"台幣: <code>NT${amounts['TW']:,.0f}</code> → <code>USDT${daily_tw_usdt:,.2f}</code>")
+                            amount_parts.append(f"<code>NT${amounts['TW']:,.0f}</code>")
                         if amounts['CN'] > 0:
-                            daily_cn_usdt = amounts['CN'] / cn_rate
-                            report_lines.append(f"人民幣: <code>CN¥{amounts['CN']:,.0f}</code> → <code>USDT${daily_cn_usdt:,.2f}</code>")
-                        report_lines.append("")
+                            amount_parts.append(f"<code>CN¥{amounts['CN']:,.0f}</code>")
+                        daily_line += " ".join(amount_parts)
+                        report_lines.append(daily_line)
                 except Exception as e:
                     logger.warning(f"Error formatting daily personal summary: {e}")
                     continue

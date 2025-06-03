@@ -444,3 +444,22 @@ class RailwayDatabaseManager:
         except Exception as e:
             logger.error(f"Error getting group name: {e}")
             return None
+    
+    async def get_user_display_name(self, user_id: int) -> Optional[str]:
+        """Get user display name by user_id"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT display_name, first_name, username FROM users WHERE user_id = %s", (user_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        # Prefer display_name, fallback to first_name, then username
+                        return result['display_name'] or result['first_name'] or result['username'] or f"User{user_id}"
+                    return f"User{user_id}"
+                finally:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Error getting user display name: {e}")
+            return f"User{user_id}"

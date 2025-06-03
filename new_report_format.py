@@ -23,7 +23,7 @@ def safe_float(value):
     except (ValueError, TypeError):
         return 0.0
 
-def format_new_group_report(transactions: List[Dict], group_name: str = "群組", db_manager=None) -> str:
+async def format_new_group_report(transactions: List[Dict], group_name: str = "群組", db_manager=None) -> str:
     """Format group financial report with comprehensive error handling"""
     try:
         if not transactions:
@@ -124,11 +124,15 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
                 if day_key not in daily_transactions:
                     daily_transactions[day_key] = []
                 
-                # Get user display name safely
-                user_name = (t.get('display_name') or 
-                           t.get('username') or 
-                           t.get('first_name') or 
-                           f"User{t.get('user_id', 'Unknown')}")
+                # Get user display name from database if available
+                user_id = t.get('user_id')
+                if db_manager and user_id:
+                    user_name = await db_manager.get_user_display_name(user_id)
+                else:
+                    user_name = (t.get('display_name') or 
+                               t.get('username') or 
+                               t.get('first_name') or 
+                               f"User{user_id}" if user_id else "Unknown")
                 
                 transaction_entry = {
                     'amount': safe_float(t.get('amount', 0)),
