@@ -497,19 +497,50 @@ class RailwayDatabaseManager:
                 conn = self.get_connection()
                 try:
                     cursor = conn.cursor()
+                    # First try to get rates for the specific date
                     cursor.execute("""
-                    SELECT currency_pair, rate FROM daily_exchange_rates 
-                    WHERE rate_date = %s
+                    SELECT currency, rate FROM exchange_rates 
+                    WHERE date = %s
+                    ORDER BY created_at DESC
                     """, (rate_date,))
                     results = cursor.fetchall()
                     
                     rates = {}
                     for row in results:
-                        rates[row['currency_pair']] = float(row['rate'])
+                        currency = row[0] if isinstance(row, (list, tuple)) else row['currency']
+                        rate = float(row[1] if isinstance(row, (list, tuple)) else row['rate'])
+                        # Map TW/CN to TWD/CNY for compatibility
+                        if currency == 'TW':
+                            rates['TWD'] = rate
+                        elif currency == 'CN':
+                            rates['CNY'] = rate
+                        else:
+                            rates[currency] = rate
                     
-                    # Default fallback rates if no data exists
+                    # If no rates found for specific date, get the most recent rates
                     if not rates:
-                        rates = {'TWD': 30.0, 'CNY': 7.0}
+                        cursor.execute("""
+                        SELECT currency, rate FROM exchange_rates 
+                        WHERE date <= %s
+                        ORDER BY date DESC, created_at DESC
+                        LIMIT 10
+                        """, (rate_date,))
+                        results = cursor.fetchall()
+                        
+                        for row in results:
+                            currency = row[0] if isinstance(row, (list, tuple)) else row['currency']
+                            rate = float(row[1] if isinstance(row, (list, tuple)) else row['rate'])
+                            # Map TW/CN to TWD/CNY for compatibility
+                            if currency == 'TW' and 'TWD' not in rates:
+                                rates['TWD'] = rate
+                            elif currency == 'CN' and 'CNY' not in rates:
+                                rates['CNY'] = rate
+                    
+                    # Ensure we have both currencies with fallback to defaults
+                    if 'TWD' not in rates:
+                        rates['TWD'] = 30.0
+                    if 'CNY' not in rates:
+                        rates['CNY'] = 7.0
                     
                     return rates
                 finally:
