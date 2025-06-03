@@ -1,0 +1,41 @@
+2025-06-03 04:21:12,927 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：13,299 -HTTPX-信息 -  http請求：POST  https://api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjfitmestext </sdmestext </sdmestext </sdmestext </sdmext </sdmextt </sdmext </sdmext </sdmext </sdmextext “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：14,072 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjff1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1vatatat </ 好的”
+
+2025-06-03 04：21：14,398 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak66zjdre6p4e6p4e6p4e6p4ehatzi_mjfernequre </s.mjff1v6ev6ev6ev6equrbackequlage “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：14,606 -new_report_format-錯誤 - 錯誤格式格式組報告：for /：for /：for /：'decimal.decimal'和float''和'float'
+
+2025-06-03 04：21：14,960 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjff1v1v1v6emestext </sdmextext “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：18,908 -httpx-信息 -  http請求：post  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjff1v1v1v1v1v1v1v1v1v1v1v1v1vatatat </ 好的”
+
+2025-06-03 04:21:19,242 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：19,592 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4e6p4ehatzi_mjfit1v1v1v6emestext </sdmext </sdmext </sdmext </sdmext </sdmext </sdmext </sdmext </sdmext </sdmextext “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：20,508 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjf1v1v1v1v1v1v1v1v1v1v1v1v1vatates </ 好的”
+
+2025-06-03 04:21:20,924 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：21：21,103 -UTILS-錯誤 - 錯誤格式化個人報告： *：'DECIMAL.DECIMAL'和'float'和'float'
+
+2025-06-03 04:21:21,444 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/editMessageText “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：21：22,782 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjff1v1v1v1v1v1v1v1v1v1vatatatat </ 好的”
+
+2025-06-03 04：21：21：23,116 -HTTPX-信息 -  http請求：POST <SD1> https://api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak66zjdre6p4e6p4e6p4ehatzi_mjf1v1v1v1v1v1v6equlbackequre </ “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：21：23,555 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjf1v1v1v1v6emestext </sdmestext </sdmestext “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：21：24,746 -HTTPX-信息 -  http請求：post  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjff1v1v1v1v1v1v1v1v1v1v1v1v1vatate </ 好的”
+
+2025-06-03 04:21:25,071 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：25,249-處理程序 - 錯誤 - 錯誤顯示艦隊報告：'psycopg22.extensions.connection'對像不支持異步上下文管理器協議
+
+2025-06-03 04：21：21：25,597 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak66zjdre6p4e6p4e6p4ehatzi_mjf1v1v1v1v6emestext </sdmestext </sdmext </sdmesttext </sdmesttext </sdmextt </sdmext </sdmext </sdmextt “ HTTP/1.1 200 OK”
+
+2025-06-03 04：21：54,908 -HTTPX-信息 -  http請求：POST  https://api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjffate/sgetuppdatate> 200好”

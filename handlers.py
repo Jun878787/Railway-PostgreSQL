@@ -479,8 +479,8 @@ class BotHandlers:
         try:
             text = text.strip()
             
-            # Exchange rate setting
-            if '設定' in text and '匯率' in text:
+            # Exchange rate setting - enhanced detection
+            if ('設定' in text and '匯率' in text) or text.startswith('匯率設定') or any(text.startswith(curr) for curr in ['TWD', 'CNY']):
                 await self._handle_exchange_rate_setting(update, context, text)
                 return
             
@@ -672,84 +672,101 @@ class BotHandlers:
     async def _handle_exchange_rate_setting(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
         """Handle exchange rate setting commands"""
         try:
+            import re
+            from datetime import datetime, date
+            
             user = update.effective_user
             user_id = user.id
             
-            # Parse exchange rate command format: 匯率設定 YYYY-MM-DD TWD:30.5 CNY:7.2
-            if text.startswith('匯率設定'):
-                parts = text.split()
-                if len(parts) < 3:
+            # Pattern 1: 設定匯率33.00 (current date, TWD)
+            match1 = re.match(r'設定匯率(\d+\.?\d*)', text)
+            if match1:
+                rate = float(match1.group(1))
+                today = date.today()
+                success = await self.db.set_exchange_rate(today, rate, user_id, 'TW')
+                if success:
                     await update.message.reply_text(
-                        "❌ 格式錯誤\n正確格式: 匯率設定 2025-06-03 TWD:30.5 CNY:7.2",
-                        parse_mode='HTML'
-                    )
-                    return
-                
-                # Parse date
-                try:
-                    from datetime import datetime
-                    date_str = parts[1]
-                    rate_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    await update.message.reply_text(
-                        "❌ 日期格式錯誤\n請使用格式: YYYY-MM-DD (例如: 2025-06-03)",
-                        parse_mode='HTML'
-                    )
-                    return
-                
-                # Parse rate pairs
-                updated_rates = []
-                for rate_part in parts[2:]:
-                    if ':' not in rate_part:
-                        continue
-                    
-                    currency, rate_str = rate_part.split(':', 1)
-                    try:
-                        rate = float(rate_str)
-                        success = await self.db.set_daily_exchange_rate(rate_date, currency, rate, user_id)
-                        if success:
-                            updated_rates.append(f"{currency}: {rate}")
-                        else:
-                            await update.message.reply_text(f"❌ 設定{currency}匯率失敗")
-                            return
-                    except ValueError:
-                        await update.message.reply_text(f"❌ 匯率格式錯誤: {rate_part}")
-                        return
-                
-                if updated_rates:
-                    rates_text = '\n'.join(updated_rates)
-                    await update.message.reply_text(
-                        f"✅ 匯率更新成功\n📅 日期: {date_str}\n💱 匯率:\n{rates_text}",
+                        f"✅ 台幣匯率設定成功\n"
+                        f"日期: {today.strftime('%Y-%m-%d')}\n"
+                        f"匯率: {rate}",
                         parse_mode='HTML'
                     )
                 else:
-                    await update.message.reply_text("❌ 沒有成功更新任何匯率")
+                    await update.message.reply_text("❌ 匯率設定失敗")
+                return
             
-            # Handle quick rate update format: TWD30.5 or CNY7.2
-            elif any(text.startswith(curr) for curr in ['TWD', 'CNY']):
-                from datetime import date
-                today = date.today()
+            # Pattern 2: 設定6/1匯率33.00 (specific date, TWD)
+            match2 = re.match(r'設定(\d{1,2}/\d{1,2})匯率(\d+\.?\d*)', text)
+            if match2:
+                date_str = match2.group(1)
+                rate = float(match2.group(2))
+                month, day = map(int, date_str.split('/'))
+                current_year = date.today().year
+                rate_date = date(current_year, month, day)
                 
-                for curr in ['TWD', 'CNY']:
-                    if text.startswith(curr):
-                        try:
-                            rate_str = text[3:]  # Remove currency prefix
-                            rate = float(rate_str)
-                            success = await self.db.set_daily_exchange_rate(today, curr, rate, user_id)
-                            if success:
-                                await update.message.reply_text(
-                                    f"✅ {curr}匯率更新成功\n📅 日期: {today}\n💱 匯率: {rate}",
-                                    parse_mode='HTML'
-                                )
-                            else:
-                                await update.message.reply_text(f"❌ 設定{curr}匯率失敗")
-                        except ValueError:
-                            await update.message.reply_text(f"❌ 匯率格式錯誤: {text}")
-                        break
-        
+                success = await self.db.set_exchange_rate(rate_date, rate, user_id, 'TW')
+                if success:
+                    await update.message.reply_text(
+                        f"✅ 台幣匯率設定成功\n"
+                        f"日期: {rate_date.strftime('%Y-%m-%d')}\n"
+                        f"匯率: {rate}",
+                        parse_mode='HTML'
+                    )
+                else:
+                    await update.message.reply_text("❌ 匯率設定失敗")
+                return
+            
+            # Pattern 3: 設定CN匯率7.5 (current date, CNY)
+            match3 = re.match(r'設定CN匯率(\d+\.?\d*)', text)
+            if match3:
+                rate = float(match3.group(1))
+                today = date.today()
+                success = await self.db.set_exchange_rate(today, rate, user_id, 'CN')
+                if success:
+                    await update.message.reply_text(
+                        f"✅ 人民幣匯率設定成功\n"
+                        f"日期: {today.strftime('%Y-%m-%d')}\n"
+                        f"匯率: {rate}",
+                        parse_mode='HTML'
+                    )
+                else:
+                    await update.message.reply_text("❌ 匯率設定失敗")
+                return
+            
+            # Pattern 4: 設定6/1CN匯率7.0 (specific date, CNY)
+            match4 = re.match(r'設定(\d{1,2}/\d{1,2})CN匯率(\d+\.?\d*)', text)
+            if match4:
+                date_str = match4.group(1)
+                rate = float(match4.group(2))
+                month, day = map(int, date_str.split('/'))
+                current_year = date.today().year
+                rate_date = date(current_year, month, day)
+                
+                success = await self.db.set_exchange_rate(rate_date, rate, user_id, 'CN')
+                if success:
+                    await update.message.reply_text(
+                        f"✅ 人民幣匯率設定成功\n"
+                        f"日期: {rate_date.strftime('%Y-%m-%d')}\n"
+                        f"匯率: {rate}",
+                        parse_mode='HTML'
+                    )
+                else:
+                    await update.message.reply_text("❌ 匯率設定失敗")
+                return
+            
+            # If no pattern matches, show help
+            await update.message.reply_text(
+                "❌ 匯率設定格式不正確\n\n"
+                "支援的格式：\n"
+                "• <code>設定匯率33.00</code> - 今日台幣匯率\n"
+                "• <code>設定6/1匯率33.00</code> - 指定日期台幣匯率\n"
+                "• <code>設定CN匯率7.5</code> - 今日人民幣匯率\n"
+                "• <code>設定6/1CN匯率7.0</code> - 指定日期人民幣匯率",
+                parse_mode='HTML'
+            )
         except Exception as e:
             logger.error(f"Error handling exchange rate setting: {e}")
-            await update.message.reply_text("❌ 匯率設定處理失敗")
+            await update.message.reply_text("❌ 匯率設定失敗")
     
     async def callback_query_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline keyboard button callbacks"""

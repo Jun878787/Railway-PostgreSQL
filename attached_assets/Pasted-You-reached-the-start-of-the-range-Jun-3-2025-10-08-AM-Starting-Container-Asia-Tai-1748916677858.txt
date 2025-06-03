@@ -1,0 +1,89 @@
+You reached the start of the range → Jun 3, 2025 10:08 AM
+
+Starting Container
+
+✅ 時區設定為: Asia/Taipei
+
+2025-06-03 02:09:04,003 - __main__ - INFO - 📁 DATABASE_URL not found, using SQLite fallback
+
+2025-06-03 02:09:04,003 - __main__ - WARNING - Database selection error: No DATABASE_URL, using fallback database
+
+2025-06-03 02:09:04,003 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+
+2025-06-03 02:09:04,003 - __main__ - INFO - 📁 Using SQLite database (DATABASE_URL not found)
+
+2025-06-03 02:09:04,011 - database - INFO - ✅ Database initialized successfully
+
+2025-06-03 02:09:04,073 - googlemaps.client - INFO - API queries_quota: 60
+
+2025-06-03 02:09:04,074 - list_formatter - INFO - Google Maps client initialized successfully
+
+2025-06-03 02:09:04,074 - __main__ - INFO - ✅ All handlers registered successfully
+
+2025-06-03 02:09:04,074 - __main__ - INFO - 🚂 Railway environment detected: production
+
+2025-06-03 02:09:04,074 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+
+2025-06-03 02:09:04,074 - __main__ - WARNING - No webhook URL found, falling back to polling
+
+2025-06-03 02:09:04,074 - __main__ - ERROR - ❌ Error starting bot: Application.run_polling() got an unexpected keyword argument 'read_timeout'
+
+Traceback (most recent call last):
+
+  File "/app/main_railway.py", line 143, in <module>
+
+    main()
+
+  File "/app/main_railway.py", line 124, in main
+
+    application.run_polling(
+
+TypeError: Application.run_polling() got an unexpected keyword argument 'read_timeout'
+
+✅ 時區設定為: Asia/Taipei
+
+2025-06-03 02:09:09,220 - __main__ - INFO - 📁 DATABASE_URL not found, using SQLite fallback
+
+2025-06-03 02:09:09,220 - __main__ - WARNING - Database selection error: No DATABASE_URL, using fallback database
+
+2025-06-03 02:09:09,220 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+
+2025-06-03 02:09:09,220 - __main__ - INFO - 📁 Using SQLite database (DATABASE_URL not found)
+
+2025-06-03 02:09:09,221 - database - INFO - ✅ Database initialized successfully
+
+2025-06-03 02:09:09,275 - googlemaps.client - INFO - API queries_quota: 60
+
+2025-06-03 02:09:09,275 - list_formatter - INFO - Google Maps client initialized successfully
+
+2025-06-03 02:09:09,276 - __main__ - INFO - ✅ All handlers registered successfully
+
+2025-06-03 02:09:09,276 - __main__ - INFO - 🚂 Railway environment detected: production
+
+2025-06-03 02:09:09,276 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+
+2025-06-03 02:09:09,276 - __main__ - WARNING - No webhook URL found, falling back to polling
+
+2025-06-03 02:09:09,276 - __main__ - ERROR - ❌ Error starting bot: Application.run_polling() got an unexpected keyword argument 'read_timeout'
+
+Traceback (most recent call last):
+
+  File "/app/main_railway.py", line 143, in <module>
+
+    main()
+
+  File "/app/main_railway.py", line 124, in main
+
+    application.run_polling(
+
+TypeError: Application.run_polling() got an unexpected keyword argument 'read_timeout'
+
+✅ 時區設定為: Asia/Taipei
+
+2025-06-03 02:09:11,436 - __main__ - INFO - 📁 DATABASE_URL not found, using SQLite fallback
+
+2025-06-03 02:09:11,436 - __main__ - WARNING - Database selection error: No DATABASE_URL, using fallback database
+
+2025-06-03 02:09:11,436 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+
+2025-06-03 02:09:11,436 - __main__ - INFO - 📁 Using SQLite database (DATABASE_URL not found)

@@ -1,0 +1,42 @@
+2025-06-03 04：47：29,914 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot794wot7wo9wo9wo9ak6zjdre6p4p4p4p4p4p4e6p4e6p4 ecqurery sdecququery sder <sersw6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6ev6efled “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：30,260 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9ak6zjdre6p4e6p4e6p4e6p4ehatzi_mjfimjff1v6ev6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6 v6emett “ HTTP/1.1 200 OK”
+
+2025-06-03 04:47:33,991 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：34,317 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot794wot7wo9wo9wo9ak6zjdre6p4p4p4p4p4p4p4p4e6eemjmjmjmjfelfer <sandecquequer <santecququer <santecqufere <sandecqufere <sander <sander <sandecqufer <santfeldeququdequequfer <santfeldeququdeququdequequfere “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：34,664 -HTTPX-信息-HTTP請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot794wo9wo9wo9wo9ak6zjdre6p4p4p4p4p4p4p4e6p4ehatzi_mjmjfitimext <SDMJMjfff6Eext <SDMETT <SDMETTMETT “ HTTP/1.1 200 OK”
+
+2025-06-03 04:47:38,254 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：38,255-處理程序 -  info-📨消息處理程序
+
+2025-06-03 04：47：38,255-處理程序 - 信息 - 👤用戶：7842840472，CHAT：-1002557176274
+
+2025-06-03 04：47：38,255-處理程序 - 信息 - 💬文字：6
+
+2025-06-03 04：47：38,255-處理程序 - 信息 - 🔍嘗試解析交易文本：'6'
+
+2025-06-03 04：47：38,256-處理程序 - 信息 - 📊交易解析結果：無
+
+2025-06-03 04:47:38,617 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/sendMessage “ HTTP/1.1 200 OK”
+
+2025-06-03 04:47:44,846 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：44,848-處理程序 -  info -nofe -nefe -sweages處理程序
+
+2025-06-03 04：47：44,848-處理程序 - 信息 - 👤用戶：7842840472，CHAT：-1002557176274
+
+2025-06-03 04：47：44,848-處理程序 - 信息 - 💬文字：📝選單
+
+2025-06-03 04：47：44,848-處理程序 - 信息 - 🔍嘗試解析交易文本：'📝選單''
+
+2025-06-03 04：47：44,848-處理程序 - 信息 - 📊交易解析結果：無
+
+2025-06-03 04:47:48,733 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates “ HTTP/1.1 200 OK”
+
+2025-06-03 04：47：49,061 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot794woot7wo9wo9ak6zjdre6p4p4p4p4p4p4p4p4 ecquququery sdecququery sdecququer <sersw6ev6ev6ev6ev6ev6efbeld <srand <srandeququere “ HTTP/1.1 200 OK”
+
+2025-06-03 04:47:50,463 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery “ HTTP/1.1 200 OK”
+

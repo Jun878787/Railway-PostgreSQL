@@ -1,0 +1,59 @@
+Starting Container
+
+✅ 時區設定為: Asia/Taipei
+
+2025-06-03 04:18:56,984 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+
+2025-06-03 04:18:56,984 - __main__ - INFO - 🔗 Connecting to PostgreSQL database...
+
+2025-06-03 04:18:57,566 - railway_database - INFO - ✅ Railway PostgreSQL database initialized successfully
+
+2025-06-03 04:18:57,566 - railway_database - INFO - ✅ Railway PostgreSQL database initialized successfully
+
+2025-06-03 04:18:57,566 - __main__ - INFO - ✅ PostgreSQL database connected successfully
+
+2025-06-03 04:18:57,625 - googlemaps.client - INFO - API queries_quota: 60
+
+2025-06-03 04:18:57,625 - list_formatter - INFO - Google Maps client initialized successfully
+
+2025-06-03 04:18:57,625 - __main__ - INFO - ✅ All handlers registered successfully
+
+2025-06-03 04:18:57,625 - __main__ - INFO - 🚂 Railway environment detected: production
+
+2025-06-03 04:18:57,625 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+
+2025-06-03 04:18:57,625 - __main__ - WARNING - No webhook URL found, falling back to polling
+
+2025-06-03 04:18:58,113 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getMe "HTTP/1.1 200 OK"
+
+2025-06-03 04:18:58,114 - __main__ - INFO - 🔧 Running post-initialization setup...
+
+2025-06-03 04：18：58,114- __ -Main __-信息 - ✅完成後啟動後完成
+
+2025-06-03 04：18：58,274 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9ak6zjdre6p4e6p4e6p4e6p4ehatzi_mjfffimp </s.mjfffexteftexteftelet “ HTTP/1.1 200 OK”
+
+2025-06-03 04：18：58,275 -Telegram.ext.Application-信息 - 申請開始
+
+2025-06-03 04：19：28,759 -httpx-信息 -  http請求：post  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjff1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v1v6e </ 好的”
+
+2025-06-03 04：19：53,678 -HTTPX-信息 -  http請求：POST  https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9ak6zjdre6p4e6p4ehatzi_mjffate/sgetuppdatate> 200好”
+
+2025-06-03 04：19：54,329 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9ak6zjdre6p4e6p4e6p4e6p4ehatzi_mjgff1v6ev6ev6ev6ev6ev6ev6ev6eev6ev6ev6ev6eev6ef。 “ HTTP/1.1 200 OK”
+
+2025-06-03 04：19：54,556-處理程序 - 錯誤 - 錯誤 - 顯示艦隊報告：'psycopg2.extensions.connection'對像不支持異步上下文管理器協議
+
+2025-06-03 04：19：54,907 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9ak6zjdre6p4e6p4e6p4e6p4ehatzi_mjmjff1v1v6emjff6emjff6ement <sdmjff6emjff6emett </sdmertt “ HTTP/1.1 200 OK”
+
+2025-06-03 04：19：59,387 -HTTPX-信息 -  http請求：POST <SD1> https：//api.telegram.org/bot7946349508:aahot7wo9wo9wo9ak6zjdre6p4e6p4e6p4ehatzi_mjffate </gettupdatate </settpdatate </settdate </ 200好”
+
+2025-06-03 04:19:59,987 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/sendMessage “ HTTP/1.1 200 OK”
+
+2025-06-03 04:20:00,338 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/sendMessage “ HTTP/1.1 200 OK”
+
+2025-06-03 04:20:02,768 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 04:20:03,100 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/answerCallbackQuery "HTTP/1.1 200 OK"
+
+2025-06-03 04:20:03,445 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/editMessageText "HTTP/1.1 200 OK"
+
+2025-06-03 04:20:04,506 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"

@@ -1,0 +1,92 @@
+docker-image://ghcr.io/railwayapp/railpack-runtime:latest
+
+0s
+
+docker-image://ghcr.io/railwayapp/railpack-builder:latest
+
+0s
+
+loading .
+
+0s
+
+install apt packages: libpq5
+
+secret Postgres: not found
+
+0s
+
+install apt packages: libpq-dev python3-dev
+
+failed to copy: context canceled: context canceled
+
+0s
+
+
+ERROR: failed to solve: secret Postgres: not found
+
+7 v0.20.0 buildkitd --config /etc/buildkit/buildkitd.toml --allow-insecure-entitlement=network.host
+
+github.com/moby/buildkit/session/secrets.GetSecret
+
+/src/session/secrets/secrets.go:25
+
+github.com/moby/buildkit/solver/llbsolver/ops.(*ExecOp).loadSecretEnv.func1
+
+/src/solver/llbsolver/ops/exec.go:560
+
+github.com/moby/buildkit/session.(*Manager).Any
+
+/src/session/group.go:83
+
+github.com/moby/buildkit/solver/llbsolver/ops.(*ExecOp).loadSecretEnv
+
+/src/solver/llbsolver/ops/exec.go:559
+
+github.com/moby/buildkit/solver/llbsolver/ops.(*ExecOp).Exec
+
+/src/solver/llbsolver/ops/exec.go:467
+
+github.com/moby/buildkit/solver.(*sharedOp).Exec.func2
+
+/src/solver/jobs.go:1102
+
+github.com/moby/buildkit/util/flightcontrol.(*call[...]).run
+
+/src/util/flightcontrol/flightcontrol.go:122
+
+sync.(*Once).doSlow
+
+/usr/local/go/src/sync/once.go:76
+
+sync.(*Once).Do
+
+/usr/local/go/src/sync/once.go:67
+
+runtime.goexit
+
+/usr/local/go/src/runtime/asm_amd64.s:1700
+
+7 v0.20.0 buildkitd --config /etc/buildkit/buildkitd.toml --allow-insecure-entitlement=network.host
+
+github.com/moby/buildkit/session/secrets.init
+
+/src/session/secrets/secrets.go:16
+
+runtime.doInit1
+
+/usr/local/go/src/runtime/proc.go:7291
+
+runtime.doInit
+
+/usr/local/go/src/runtime/proc.go:7258
+
+runtime.main
+
+/usr/local/go/src/runtime/proc.go:254
+
+runtime.goexit
+
+/usr/local/go/src/runtime/asm_amd64.s:1700
+
+89918 v0.23.0 /usr/libexec/docker/cli-plugins/docker-buildx buildx build --output type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true,push=true,name=production-asia-southeast1-eqsg3a.railway-registry.com/98219811-6593-4696-a981-1ebf4e262a99:456f502c-35e5-4b70-81ca-a55d408f900d -t production-asia-southeast1-eqsg3a.railway-registry.com/98219811-6593-4696-a981-1ebf4e262a99:456f502c-35e5-4b70-81ca-a55d408f900d --cpu-quota 800000 --memory 8g -f /tmp/railpack/railpack-1293374281/railpack-plan.json .tmp/build/456f502c-35e5-4b70-81ca-a55d408f900d --secret id=Postgres.DATABASE_URL,env=Postgres.DATABASE_URL --secret id=RAILWAY_GIT_AUTHOR,env=RAILWAY_GIT_AUTHOR --secret id=RAILWAY_PROJECT_NAME,env=RAILWAY_PROJECT_NAME --secret id=BOT_TOKEN,env=BOT_TOKEN --secret id=PORT,env=PORT --secret id=RAILWAY_GIT_COMMIT_MESSAGE,env=RAILWAY_GIT_COMMIT_MESSAGE --secret id=RAILWAY_GIT_REPO_OWNER,env=RAILWAY_GIT_REPO_OWNER --secret id=RAILWAY_PROJECT_ID,env=RAILWAY_PROJECT_ID --secret id=TZ,env=TZ --secret id=RAILWAY_ENVIRONMENT_ID,env=RAILWAY_ENVIRONMENT_ID --secret id=RAILWAY_GIT_BRANCH,env=RAILWAY_GIT_BRANCH --secret id=GOOGLE_MAPS_API_KEY,env=GOOGLE_MAPS_API_KEY --secret id=RAILWAY_ENVIRONMENT,env=RAILWAY_ENVIRONMENT --secret id=RAILWAY_GIT_COMMIT_SHA,env=RAILWAY_GIT_COMMIT_SHA --secret id=RAILWAY_GIT_REPO_NAME,env=RAILWAY_GIT_REPO_NAME --secret id=RAILWAY_PRIVATE_DOMAIN,env=RAILWAY_PRIVATE_DOMAIN --secret id=RAILWAY_SERVICE_ID,env=RAILWAY_SERVICE_ID --secret id=ADMIN_IDS,env=ADMIN_IDS --secret id=DEBUG,env=DEBUG --secret id=RAILWAY_SERVICE_NAME,env=RAILWAY_SERVICE_NAME --secret id=GROUP_ID,env=GROUP_ID --secret id=RAILWAY_ENVIRONMENT_NAME,env=RAILWAY_ENVIRONMENT_NAME --build-arg BUILDKIT_DOCKERFILE_CHECK=skip=all --build-arg BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.66 --build-arg cache-key=s/98219811-6593-4696-a981-1ebf4e262a99 --build-arg secrets-hash=340d5957189a479095405c6f6148621e21f847d26a6dd9cced5961d3d702fddc

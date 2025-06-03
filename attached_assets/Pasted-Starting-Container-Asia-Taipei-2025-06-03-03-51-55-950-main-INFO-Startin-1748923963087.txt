@@ -1,0 +1,59 @@
+Starting Container
+
+✅ 時區設定為: Asia/Taipei
+
+2025-06-03 03:51:55,950 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+
+2025-06-03 03:51:55,950 - __main__ - INFO - 🔗 Connecting to PostgreSQL database...
+
+警告: DATABASE_URL 未設定，等待 PostgreSQL 服務啟動...
+
+2025-06-03 03:51:55,950 - __main__ - INFO - ✅ PostgreSQL database connected successfully
+
+2025-06-03 03:51:55,997 - googlemaps.client - INFO - API queries_quota: 60
+
+2025-06-03 03:51:55,997 - list_formatter - INFO - Google Maps client initialized successfully
+
+2025-06-03 03:51:55,998 - __main__ - INFO - ✅ All handlers registered successfully
+
+2025-06-03 03:51:55,998 - __main__ - INFO - 🚂 Railway environment detected: production
+
+2025-06-03 03:51:55,998 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+
+2025-06-03 03:51:55,998 - __main__ - WARNING - No webhook URL found, falling back to polling
+
+2025-06-03 03:51:56,514 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getMe "HTTP/1.1 200 OK"
+
+2025-06-03 03:51:56,515 - __main__ - INFO - 🔧 Running post-initialization setup...
+
+2025-06-03 03:51:56,515 - __main__ - INFO - ✅ Post-initialization completed
+
+2025-06-03 03:51:56,684 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/deleteWebhook "HTTP/1.1 200 OK"
+
+2025-06-03 03:51:56,686 - telegram.ext.Application - INFO - Application started
+
+2025-06-03 03:52:01,335 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 409 Conflict"
+
+2025-06-03 03:52:01,336 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+
+2025-06-03 03:52:32,500 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:53:02,663 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:53:32,824 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:54:02,985 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:54:33,150 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:55:03,311 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:55:33,472 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:56:03,634 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:56:33,798 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:57:03,960 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
+
+2025-06-03 03:57:34,120 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAHot7Wo9aK6ZjDRE6P4ehATzi_mjfF1v6E/getUpdates "HTTP/1.1 200 OK"
