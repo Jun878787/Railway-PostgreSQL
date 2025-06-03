@@ -924,6 +924,15 @@ class BotHandlers:
             )
             
             keyboard = BotKeyboards.get_group_report_keyboard()
+            
+            # Debug: Log the actual report content being sent
+            logger.info(f"Original report HTML: {repr(report[:200])}")
+            
+            # Check if HTML tags are being corrupted before sending
+            import re
+            html_tags = re.findall(r'<[^>]+>', report[:500])
+            logger.info(f"HTML tags found: {html_tags[:5]}")
+            
             await query.edit_message_text(
                 report,
                 parse_mode='HTML',
@@ -1090,12 +1099,13 @@ class BotHandlers:
             user_name = user.first_name or user.username or "用戶"
             chat_name = chat.title if hasattr(chat, 'title') and chat.title else "群組"
             
-            report = ReportFormatter.format_personal_report(
+            # Format report using personal report formatter
+            from utils import PersonalReportFormatter
+            personal_formatter = PersonalReportFormatter()
+            report = personal_formatter.format_personal_report(
                 transactions, 
-                user_name=user_name,
-                group_name=chat_name,
-                month=month,
-                year=year
+                user_name,
+                chat_name
             )
             
             keyboard = BotKeyboards.get_personal_report_keyboard()

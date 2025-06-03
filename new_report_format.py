@@ -203,7 +203,14 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
                 logger.warning(f"Error formatting daily summary for {day_key}: {e}")
                 continue
         
-        return "\n".join(report_lines)
+        # Ensure HTML tags remain lowercase to prevent Telegram parsing issues
+        final_report = "\n".join(report_lines)
+        
+        # Fix any corrupted HTML tags using utility function
+        from utils import fix_html_tags
+        final_report = fix_html_tags(final_report)
+        
+        return final_report
         
     except Exception as e:
         logger.error(f"Error formatting group report: {e}")

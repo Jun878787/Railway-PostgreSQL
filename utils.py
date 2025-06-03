@@ -11,6 +11,34 @@ from decimal import Decimal, InvalidOperation
 
 logger = logging.getLogger(__name__)
 
+def fix_html_tags(text: str) -> str:
+    """Fix corrupted HTML tags that may have been converted to uppercase"""
+    if not text:
+        return text
+    
+    # Replace common corrupted HTML tags with correct lowercase versions
+    tag_fixes = [
+        (r'<CODE>', '<code>'),
+        (r'</CODE>', '</code>'),
+        (r'<Code>', '<code>'),
+        (r'</Code>', '</code>'),
+        (r'<B>', '<b>'),
+        (r'</B>', '</b>'),
+        (r'<STRONG>', '<strong>'),
+        (r'</STRONG>', '</strong>'),
+        (r'<I>', '<i>'),
+        (r'</I>', '</i>'),
+        (r'<U>', '<u>'),
+        (r'</U>', '</u>'),
+        (r'<EM>', '<em>'),
+        (r'</EM>', '</em>'),
+    ]
+    
+    for pattern, replacement in tag_fixes:
+        text = re.sub(pattern, replacement, text)
+    
+    return text
+
 class TransactionParser:
     """Parse transaction commands and extract relevant information"""
     
@@ -281,7 +309,8 @@ class ReportFormatter:
                 report_lines.extend(current_group)
                 report_lines.append("－－－－－－－－－－")
             
-            return "\n".join(report_lines)
+            final_report = "\n".join(report_lines)
+            return fix_html_tags(final_report)
             
         except Exception as e:
             logger.error(f"Error formatting personal report: {e}")
@@ -396,7 +425,8 @@ class ReportFormatter:
             
             report_lines.append("－－－－－－－－－－")
             
-            return "\n".join(report_lines)
+            final_report = "\n".join(report_lines)
+            return fix_html_tags(final_report)
             
         except Exception as e:
             logger.error(f"Error formatting group report: {e}")
@@ -582,7 +612,8 @@ class PersonalReportFormatter:
                     logger.warning(f"Error formatting daily personal summary: {e}")
                     continue
             
-            return "\n".join(report_lines)
+            final_report = "\n".join(report_lines)
+            return fix_html_tags(final_report)
             
         except Exception as e:
             logger.error(f"Error formatting personal report: {e}")
@@ -670,7 +701,8 @@ class FleetReportFormatter:
                     logger.warning(f"Error formatting group summary: {e}")
                     continue
             
-            return "\n".join(report_lines)
+            final_report = "\n".join(report_lines)
+            return fix_html_tags(final_report)
             
         except Exception as e:
             logger.error(f"Error formatting fleet report: {e}")
