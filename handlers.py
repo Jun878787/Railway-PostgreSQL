@@ -909,8 +909,11 @@ class BotHandlers:
             # Get current month group transactions
             transactions = await self.db.get_group_transactions(chat.id)
             
-            # Format report
-            report = await self.formatter.format_group_report(
+            # Import the updated formatting function
+            from new_report_format import format_new_group_report
+            
+            # Format report using updated function with daily exchange rates
+            report = format_new_group_report(
                 transactions,
                 chat.title or "群組",
                 self.db
@@ -1139,12 +1142,21 @@ class BotHandlers:
                 if transaction['transaction_type'] == 'income':
                     daily_data[date_key][group_id][transaction['currency']] += transaction['amount']
             
-            # Format fleet report with correct daily rate calculations
-            report = f"""【👀 North™Sea 北金國際 - {month_name}車隊報表】
-<b>◉ 台幣業績</b>
+            # Calculate total USDT with dynamic formatting
+            total_usdt = tw_usdt_total + cn_usdt_total
+            
+            # Create dynamic emojis based on performance
+            performance_emoji = "🚀" if total_usdt > 50000 else "💪" if total_usdt > 30000 else "📈"
+            currency_tw_emoji = "💎" if tw_total > 1500000 else "💰"
+            currency_cn_emoji = "🏆" if cn_total > 15000 else "💵"
+            
+            # Format fleet report with dynamic elements
+            report = f"""【{performance_emoji} North™Sea 北金國際 - {month_name}車隊報表】
+<b>{currency_tw_emoji} 台幣業績</b>
 <code>NT${tw_total:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>
-<b>◉ 人民幣業績</b>
+<b>{currency_cn_emoji} 人民幣業績</b>
 <code>CN¥{cn_total:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>
+<b>🎯 總計USDT: ${total_usdt:,.2f}</b>
 －－－－－－－－－－"""
 
             # Sort dates for consistent ordering

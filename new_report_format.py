@@ -51,18 +51,44 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
             tw_usdt_total += amounts['TW'] / day_tw_rate if amounts['TW'] > 0 else 0
             cn_usdt_total += amounts['CN'] / day_cn_rate if amounts['CN'] > 0 else 0
         
-        # Format report header - remove extra eye emoji
+        # Calculate total USDT and add dynamic elements
+        total_usdt = tw_usdt_total + cn_usdt_total
+        
+        # Dynamic emoji selection based on performance
+        if total_usdt > 50000:
+            main_emoji = "🚀"
+            tw_emoji = "💎"
+            cn_emoji = "🏆"
+            performance_note = "超級表現！"
+        elif total_usdt > 30000:
+            main_emoji = "💪"
+            tw_emoji = "💰"
+            cn_emoji = "🎯"
+            performance_note = "優秀業績！"
+        elif total_usdt > 10000:
+            main_emoji = "📈"
+            tw_emoji = "💵"
+            cn_emoji = "💰"
+            performance_note = "穩定成長"
+        else:
+            main_emoji = "📊"
+            tw_emoji = "💸"
+            cn_emoji = "💴"
+            performance_note = "持續努力"
+        
+        # Format report header with dynamic elements
         current_date = datetime.now()
         year = current_date.year
         month = current_date.month
-        report_name = f"{group_name} - {year}年{month}月群組報表"
+        clean_group_name = group_name.replace("👀 ", "").strip()
         
         report_lines = [
-            f"<b>【👀 {report_name}】</b>",
-            f"<b>◉ 台幣業績</b>",
+            f"<b>【{main_emoji} {clean_group_name} - {year}年{month}月群組報表】</b>",
+            f"<b>{tw_emoji} 台幣業績</b>",
             f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
-            f"<b>◉ 人民幣業績</b>",
+            f"<b>{cn_emoji} 人民幣業績</b>",
             f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
+            f"<b>🎯 總計USDT: ${total_usdt:,.2f} ({performance_note})</b>",
             "－－－－－－－－－－"
         ]
         
