@@ -92,22 +92,12 @@ class FleetReportFormatter:
                     logger.warning(f"Error processing transaction for fleet report: {e}")
                     continue
             
-            # Calculate USDT equivalents
-            tw_rate = 33.33  # Default rate for 06/01
-            cn_rate = 7.5    # Default rate for 06/01
+            # Calculate USDT equivalents by summing daily conversions (will be calculated in daily loop)
+            tw_usdt_total = 0.0
+            cn_usdt_total = 0.0
             
-            tw_usdt_total = overall_totals['TW'] / tw_rate if overall_totals['TW'] > 0 else 0
-            cn_usdt_total = overall_totals['CN'] / cn_rate if overall_totals['CN'] > 0 else 0
-            
-            # Build report header
-            report_lines = [
-                "<b>North™Sea 北金國際 2025年6月車隊報表</b>",
-                "<b>◉ 台幣業績</b>",
-                f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
-                "<b>◉ 人民幣業績</b>",
-                f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
-                "_____________________________"
-            ]
+            # Placeholder for report lines - header will be built after calculations
+            report_lines = []
             
             # Add daily summaries
             for day_key in sorted(daily_transactions.keys()):
@@ -128,6 +118,10 @@ class FleetReportFormatter:
                     # Calculate USDT equivalents
                     tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
                     cn_daily_usdt = cn_daily / day_cn_rate if cn_daily > 0 else 0
+                    
+                    # Accumulate total USDT amounts
+                    tw_usdt_total += tw_daily_usdt
+                    cn_usdt_total += cn_daily_usdt
                     
                     # Add date header with consistent formatting
                     report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate:.2f} 人民幣匯率{day_cn_rate:.1f}</b>")
@@ -169,9 +163,22 @@ class FleetReportFormatter:
                     logger.warning(f"Error formatting daily fleet summary: {e}")
                     continue
             
+            # Build report header with correct USDT totals
+            final_report = [
+                "<b>North™Sea 北金國際 2025年6月車隊報表</b>",
+                "<b>◉ 台幣業績</b>",
+                f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
+                "<b>◉ 人民幣業績</b>",
+                f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
+                "_____________________________"
+            ]
+            
+            # Add daily details
+            final_report.extend(report_lines)
+            
             # Join and fix HTML tags
-            final_report = "\n".join(report_lines)
-            return fix_html_tags(final_report)
+            final_report_text = "\n".join(final_report)
+            return fix_html_tags(final_report_text)
             
         except Exception as e:
             logger.error(f"Error formatting comprehensive fleet report: {e}")
