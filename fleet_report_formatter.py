@@ -143,15 +143,13 @@ class FleetReportFormatter:
                     user_daily_totals = {}
                     for trans in day_trans:
                         user = trans['user']
-                        group = trans['group']
-                        user_key = f"{user} {group}" if group != "未知群組" else user
                         
-                        if user_key not in user_daily_totals:
-                            user_daily_totals[user_key] = {'TW': 0, 'CN': 0}
-                        user_daily_totals[user_key][trans['currency']] += trans['amount']
+                        if user not in user_daily_totals:
+                            user_daily_totals[user] = {'TW': 0, 'CN': 0}
+                        user_daily_totals[user][trans['currency']] += trans['amount']
                     
                     # Add user transaction lines
-                    for user_key, amounts in user_daily_totals.items():
+                    for user, amounts in user_daily_totals.items():
                         user_line_parts = []
                         if amounts['TW'] > 0:
                             user_line_parts.append(f"<code>NT${amounts['TW']:,.0f}</code>")
@@ -159,14 +157,8 @@ class FleetReportFormatter:
                             user_line_parts.append(f"<code>CN¥{amounts['CN']:,.0f}</code>")
                         
                         if user_line_parts:
-                            # Extract group name for display
-                            if '👀' in user_key:
-                                display_name = user_key.split(' ')[-1]  # Get the group name part
-                            else:
-                                display_name = user_key
-                            
                             user_amounts = " ".join(user_line_parts)
-                            report_lines.append(f"    • {user_amounts} {display_name}")
+                            report_lines.append(f"    • {user_amounts} <code>{user}</code>")
                     
                     report_lines.append("")  # Add blank line between days
                     
