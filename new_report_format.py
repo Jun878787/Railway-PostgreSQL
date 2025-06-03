@@ -3,9 +3,18 @@ New report formatting functions with updated layout
 """
 from datetime import datetime
 from typing import List, Dict
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
+
+def safe_float(value):
+    """Safely convert Decimal or any numeric value to float"""
+    if isinstance(value, Decimal):
+        return float(value)
+    elif hasattr(value, '__float__'):
+        return float(value)
+    return value
 
 def format_new_group_report(transactions: List[Dict], group_name: str = "群組", db_manager=None) -> str:
     """Format group financial report with new layout as requested"""
@@ -17,7 +26,9 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
         overall_totals = {'TW': 0, 'CN': 0}
         for t in transactions:
             if t['transaction_type'] == 'income':
-                overall_totals[t['currency']] += t['amount']
+                # Convert Decimal to float for calculations
+                amount = safe_float(t['amount'])
+                overall_totals[t['currency']] += amount
         
         # Calculate USDT totals by summing daily USDT amounts (not dividing total by single rate)
         tw_usdt_total = 0
@@ -41,7 +52,9 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
                 if day_key not in daily_usdt_totals:
                     daily_usdt_totals[day_key] = {'TW': 0, 'CN': 0}
                 
-                daily_usdt_totals[day_key][t['currency']] += t['amount']
+                # Convert Decimal to float for calculations
+                amount = safe_float(t['amount'])
+                daily_usdt_totals[day_key][t['currency']] += amount
         
         # Calculate total USDT using daily rates
         for day_key, amounts in daily_usdt_totals.items():

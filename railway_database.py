@@ -1,6 +1,6 @@
 """
 Railway PostgreSQL database management for North Sea Financial Bot
-Handles PostgreSQL database operations for Railway deployment
+Handles PostgreSQL database operations for Railway deployment - Fixed version
 """
 
 import os
@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, date
 from typing import List, Dict, Optional
 import asyncio
-from contextlib import asynccontextmanager
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,8 @@ class RailwayDatabaseManager:
     def init_database(self):
         """Initialize database tables"""
         try:
-            with self.get_connection() as conn:
+            conn = self.get_connection()
+            try:
                 cursor = conn.cursor()
                 
                 # Users table
@@ -68,29 +69,42 @@ class RailwayDatabaseManager:
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS transactions (
                     id SERIAL PRIMARY KEY,
-                    user_id BIGINT,
-                    group_id BIGINT,
-                    date DATE,
-                    currency VARCHAR(10),
-                    amount DECIMAL(15,2),
-                    transaction_type VARCHAR(20),
-                    category VARCHAR(100) DEFAULT 'general',
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_id BIGINT NOT NULL,
+                    group_id BIGINT NOT NULL,
+                    date DATE NOT NULL,
+                    currency VARCHAR(10) NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL,
+                    transaction_type VARCHAR(20) NOT NULL,
                     created_by BIGINT,
-                    FOREIGN KEY (user_id) REFERENCES users (user_id)
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
                 
-                # Exchange rates table (multi-currency support)
+                # Exchange rates table
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS exchange_rates (
-                    date DATE,
-                    currency VARCHAR(10),
-                    rate DECIMAL(10,4),
-                    set_by BIGINT,
+                    id SERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    currency VARCHAR(10) NOT NULL,
+                    rate DECIMAL(10,4) NOT NULL,
+                    set_by BIGINT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (date, currency)
+                    UNIQUE(date, currency)
+                )
+                """)
+                
+                # Fund balances table
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS fund_balances (
+                    id SERIAL PRIMARY KEY,
+                    fund_type VARCHAR(50) NOT NULL,
+                    currency VARCHAR(10) NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+                    group_id BIGINT NOT NULL,
+                    updated_by BIGINT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(fund_type, currency, group_id)
                 )
                 """)
                 
@@ -99,21 +113,7 @@ class RailwayDatabaseManager:
                 CREATE TABLE IF NOT EXISTS groups (
                     group_id BIGINT PRIMARY KEY,
                     group_name VARCHAR(255),
-                    welcome_message TEXT,
-                    settings JSONB DEFAULT '{}',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-                """)
-                
-                # Fund management table
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS funds (
-                    id SERIAL PRIMARY KEY,
-                    fund_type VARCHAR(50),
-                    amount DECIMAL(15,2),
-                    currency VARCHAR(10),
-                    group_id BIGINT,
-                    updated_by BIGINT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
@@ -121,6 +121,8 @@ class RailwayDatabaseManager:
                 conn.commit()
                 logger.info("✅ Railway PostgreSQL database initialized successfully")
                 
+            finally:
+                conn.close()
         except Exception as e:
             logger.error(f"❌ Error initializing Railway database: {e}")
             raise
@@ -129,7 +131,8 @@ class RailwayDatabaseManager:
         """Set exchange rate for a specific date and currency"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("""
                     INSERT INTO exchange_rates (date, currency, rate, set_by)
@@ -140,6 +143,8 @@ class RailwayDatabaseManager:
                     conn.commit()
                     logger.info(f"✅ Exchange rate set successfully: {rate_date} {currency} = {rate}")
                     return True
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"❌ Error setting exchange rate: {e}")
             logger.error(f"Details: rate_date={rate_date}, currency={currency}, rate={rate}, set_by={set_by}")
@@ -152,7 +157,8 @@ class RailwayDatabaseManager:
                 rate_date = date.today()
             
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("""
                     SELECT rate FROM exchange_rates 
@@ -160,9 +166,10 @@ class RailwayDatabaseManager:
                     ORDER BY date DESC 
                     LIMIT 1
                     """, (rate_date, currency))
-                    
                     result = cursor.fetchone()
                     return float(result['rate']) if result else None
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error getting exchange rate: {e}")
             return None
@@ -173,7 +180,8 @@ class RailwayDatabaseManager:
         """Add or update user information"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("""
                     INSERT INTO users (user_id, username, display_name, first_name, last_name)
@@ -188,6 +196,8 @@ class RailwayDatabaseManager:
                     """, (user_id, username, display_name, first_name, last_name))
                     conn.commit()
                     return True
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error adding user: {e}")
             return False
@@ -199,7 +209,8 @@ class RailwayDatabaseManager:
         """Add a financial transaction"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("""
                     INSERT INTO transactions (user_id, group_id, date, currency, amount, transaction_type, created_by, description)
@@ -207,6 +218,8 @@ class RailwayDatabaseManager:
                     """, (user_id, group_id, transaction_date, currency, amount, transaction_type, created_by, description))
                     conn.commit()
                     return True
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error adding transaction: {e}")
             return False
@@ -216,7 +229,8 @@ class RailwayDatabaseManager:
         """Get user transactions for specified period in specific group"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     
                     query = "SELECT * FROM transactions WHERE user_id = %s"
@@ -236,6 +250,8 @@ class RailwayDatabaseManager:
                     results = cursor.fetchall()
                     
                     return [dict(row) for row in results] if results else []
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error getting user transactions: {e}")
             return []
@@ -245,7 +261,8 @@ class RailwayDatabaseManager:
         """Get group transactions for specified period"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     
                     query = "SELECT * FROM transactions WHERE group_id = %s"
@@ -261,6 +278,8 @@ class RailwayDatabaseManager:
                     results = cursor.fetchall()
                     
                     return [dict(row) for row in results] if results else []
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error getting group transactions: {e}")
             return []
@@ -269,36 +288,132 @@ class RailwayDatabaseManager:
         """Get transactions from all groups for fleet report"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     
-                    query = """
-                    SELECT t.*, g.group_name 
-                    FROM transactions t 
-                    LEFT JOIN groups g ON t.group_id = g.group_id
-                    WHERE 1=1
-                    """
+                    query = "SELECT * FROM transactions"
                     params = []
                     
                     if month and year:
-                        query += " AND EXTRACT(MONTH FROM t.date) = %s AND EXTRACT(YEAR FROM t.date) = %s"
+                        query += " WHERE EXTRACT(MONTH FROM date) = %s AND EXTRACT(YEAR FROM date) = %s"
                         params.extend([month, year])
                     
-                    query += " ORDER BY t.date DESC"
+                    query += " ORDER BY date DESC"
                     
                     cursor.execute(query, params)
                     results = cursor.fetchall()
                     
                     return [dict(row) for row in results] if results else []
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error getting all groups transactions: {e}")
             return []
+    
+    async def delete_transaction(self, user_id: int, transaction_date: date, 
+                               currency: str, amount: float) -> bool:
+        """Delete a specific transaction"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    DELETE FROM transactions 
+                    WHERE user_id = %s AND date = %s AND currency = %s AND amount = %s
+                    """, (user_id, transaction_date, currency, amount))
+                    conn.commit()
+                    return cursor.rowcount > 0
+                finally:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Error deleting transaction: {e}")
+            return False
+    
+    async def delete_monthly_transactions(self, user_id: int, month: int, 
+                                        year: int, currency: str = None) -> bool:
+        """Delete all transactions for a specific month"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    
+                    query = """
+                    DELETE FROM transactions 
+                    WHERE user_id = %s AND EXTRACT(MONTH FROM date) = %s AND EXTRACT(YEAR FROM date) = %s
+                    """
+                    params = [user_id, month, year]
+                    
+                    if currency:
+                        query += " AND currency = %s"
+                        params.append(currency)
+                    
+                    cursor.execute(query, params)
+                    conn.commit()
+                    return cursor.rowcount > 0
+                finally:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Error deleting monthly transactions: {e}")
+            return False
+    
+    async def update_fund(self, fund_type: str, amount: float, currency: str,
+                         group_id: int, updated_by: int) -> bool:
+        """Update fund amount"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    INSERT INTO fund_balances (fund_type, currency, amount, group_id, updated_by)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (fund_type, currency, group_id) 
+                    DO UPDATE SET 
+                        amount = EXCLUDED.amount,
+                        updated_by = EXCLUDED.updated_by,
+                        updated_at = CURRENT_TIMESTAMP
+                    """, (fund_type, currency, amount, group_id, updated_by))
+                    conn.commit()
+                    return True
+                finally:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Error updating fund: {e}")
+            return False
+    
+    async def get_fund_balance(self, fund_type: str, group_id: int) -> Dict[str, float]:
+        """Get current fund balance"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    SELECT currency, amount FROM fund_balances 
+                    WHERE fund_type = %s AND group_id = %s
+                    """, (fund_type, group_id))
+                    results = cursor.fetchall()
+                    
+                    balances = {}
+                    for row in results:
+                        balances[row['currency']] = float(row['amount'])
+                    
+                    return balances
+                finally:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Error getting fund balance: {e}")
+            return {}
     
     async def add_or_update_group(self, group_id: int, group_name: str) -> bool:
         """Add or update group information"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("""
                     INSERT INTO groups (group_id, group_name)
@@ -308,6 +423,8 @@ class RailwayDatabaseManager:
                     """, (group_id, group_name))
                     conn.commit()
                     return True
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error adding/updating group: {e}")
             return False
@@ -316,11 +433,14 @@ class RailwayDatabaseManager:
         """Get group name by group_id"""
         try:
             async with self._lock:
-                with self.get_connection() as conn:
+                conn = self.get_connection()
+                try:
                     cursor = conn.cursor()
                     cursor.execute("SELECT group_name FROM groups WHERE group_id = %s", (group_id,))
                     result = cursor.fetchone()
                     return result['group_name'] if result else None
+                finally:
+                    conn.close()
         except Exception as e:
             logger.error(f"Error getting group name: {e}")
             return None
