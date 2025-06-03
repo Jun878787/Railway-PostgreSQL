@@ -158,7 +158,9 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "�
                 tw_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'TW' and t['type'] == 'income')
                 cn_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'CN' and t['type'] == 'income')
                 
-                # Get daily exchange rates from database
+                # Get daily exchange rates from database using proper date
+                from datetime import datetime
+                date_obj = datetime.strptime(f"2025-{day_key}", "%Y-%m/%d").date()
                 day_rates = await db_manager.get_latest_exchange_rates(date_obj) if db_manager else {'TWD': 30.0, 'CNY': 7.0}
                 day_tw_rate = day_rates.get('TWD', 30.0)
                 day_cn_rate = day_rates.get('CNY', 7.0)
@@ -167,8 +169,8 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "�
                 tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
                 cn_daily_usdt = cn_daily / day_cn_rate if cn_daily > 0 else 0
                 
-                # Add date header with exchange rates
-                report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate} 人民幣匯率{day_cn_rate}</b>")
+                # Add date header with exchange rates formatted to 2 decimal places for TWD
+                report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate:.2f} 人民幣匯率{day_cn_rate:.1f}</b>")
                 
                 # Add daily totals line
                 daily_line = ""

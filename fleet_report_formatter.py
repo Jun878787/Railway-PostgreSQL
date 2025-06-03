@@ -129,8 +129,8 @@ class FleetReportFormatter:
                     tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
                     cn_daily_usdt = cn_daily / day_cn_rate if cn_daily > 0 else 0
                     
-                    # Add date header
-                    report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate} 人民幣匯率{day_cn_rate}</b>")
+                    # Add date header with consistent formatting
+                    report_lines.append(f"<b>{day_key} 台幣匯率{day_tw_rate:.2f} 人民幣匯率{day_cn_rate:.1f}</b>")
                     
                     # Add daily totals line
                     daily_line_parts = []
