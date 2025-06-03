@@ -16,20 +16,13 @@ logger = logging.getLogger(__name__)
 
 class RailwayDatabaseManager:
     def __init__(self):
-        self.database_url = os.getenv('DATABASE_URL', '')
+        self.database_url = os.getenv('DATABASE_URL')
         if not self.database_url:
-            print("警告: DATABASE_URL 未設定，等待 PostgreSQL 服務啟動...")
-            # 不立即失敗，允許服務在稍後連接
-            self.database_url = None
-            self._lock = asyncio.Lock()
-            return
+            raise Exception("DATABASE_URL environment variable not found")
         
         self._lock = asyncio.Lock()
-        try:
-            self.init_database()
-        except Exception as e:
-            print(f"資料庫初始化失敗: {e}")
-            # 繼續運行，稍後重試
+        self.init_database()
+        logger.info("✅ Railway PostgreSQL database initialized successfully")
     
     def get_connection(self):
         """Get database connection"""
