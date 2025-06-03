@@ -93,13 +93,12 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
                 logger.warning(f"Error calculating USDT for {day_key}: {e}")
                 continue
         
-        # Build report header
+        # Build report header with proper formatting
         report_lines = [
-            f"📊 <b>{group_name}報表</b>",
-            "－－－－－－－－－－",
-            "<b>◉ 台幣業績</b>",
+            f"【👀 {group_name} 2025年6月組別報表】",
+            "◉ 台幣業績",
             f"<code>NT${overall_totals['TW']:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>",
-            "<b>◉ 人民幣業績</b>",
+            "◉ 人民幣業績", 
             f"<code>CN¥{overall_totals['CN']:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>",
             "－－－－－－－－－－"
         ]
@@ -145,36 +144,60 @@ def format_new_group_report(transactions: List[Dict], group_name: str = "群組"
                 logger.warning(f"Error processing transaction for daily view: {e}")
                 continue
         
-        # Add daily summaries
+        # Add daily summaries in the exact format requested
         for day_key in sorted(daily_transactions.keys()):
             try:
                 day_trans = daily_transactions[day_key]
                 
-                # Calculate daily totals
+                # Calculate daily totals by currency
                 tw_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'TW' and t['type'] == 'income')
                 cn_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'CN' and t['type'] == 'income')
                 
-                # Use daily rates
+                # Get daily exchange rates
                 day_tw_rate = 33.33 if day_key == '06/01' else 30.0
                 day_cn_rate = 7.5 if day_key == '06/01' else 7.0
                 
+                # Calculate USDT equivalents
                 tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
                 cn_daily_usdt = cn_daily / day_cn_rate if cn_daily > 0 else 0
                 
-                report_lines.append(f"<b>📅 {day_key}</b>")
+                # Add date header with exchange rates
+                report_lines.append(f"📅{day_key} 台幣匯率{day_tw_rate}    人民幣匯率{day_cn_rate}")
                 
+                # Add daily totals line
+                daily_line = ""
                 if tw_daily > 0:
-                    report_lines.append(f"台幣: <code>NT${tw_daily:,.0f}</code> → <code>USDT${tw_daily_usdt:,.2f}</code>")
+                    daily_line += f"<code>NT${tw_daily:,.0f}({tw_daily_usdt:,.2f})</code>"
                 if cn_daily > 0:
-                    report_lines.append(f"人民幣: <code>CN¥{cn_daily:,.0f}</code> → <code>USDT${cn_daily_usdt:,.2f}</code>")
+                    if daily_line:
+                        daily_line += "  "
+                    daily_line += f"<code>CN¥{cn_daily:,.0f}({cn_daily_usdt:,.2f})</code>"
                 
-                # Add individual transactions
+                if daily_line:
+                    report_lines.append(daily_line)
+                
+                # Group transactions by user for this day
+                user_transactions = {}
                 for trans in day_trans:
                     if trans['type'] == 'income':
-                        currency_symbol = "NT$" if trans['currency'] == 'TW' else "CN¥"
-                        report_lines.append(f"• {trans['user']}: <code>{currency_symbol}{trans['amount']:,.0f}</code>")
+                        user = trans['user']
+                        if user not in user_transactions:
+                            user_transactions[user] = {'TW': 0, 'CN': 0}
+                        user_transactions[user][trans['currency']] += trans['amount']
                 
-                report_lines.append("")  # Add spacing
+                # Add individual user transactions
+                for user, amounts in user_transactions.items():
+                    user_line = "   • "
+                    if amounts['TW'] > 0:
+                        user_line += f"<code>NT${amounts['TW']:,.0f}</code>"
+                    if amounts['CN'] > 0:
+                        if amounts['TW'] > 0:
+                            user_line += "  "
+                        user_line += f"<code>CN¥{amounts['CN']:,.0f}</code>"
+                    user_line += f" {user}"
+                    report_lines.append(user_line)
+                
+                report_lines.append("")  # Add spacing between days
                 
             except Exception as e:
                 logger.warning(f"Error formatting daily summary for {day_key}: {e}")

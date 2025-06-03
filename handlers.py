@@ -875,8 +875,10 @@ class BotHandlers:
             # Add group context to report title
             group_name = chat.title if group_id else "個人"
             
-            # Format report
-            report = self.formatter.format_personal_report(
+            # Format report using personal report formatter
+            from utils import PersonalReportFormatter
+            personal_formatter = PersonalReportFormatter()
+            report = personal_formatter.format_personal_report(
                 transactions, 
                 user.first_name or user.username or f"User{user.id}",
                 group_name
@@ -1041,168 +1043,22 @@ class BotHandlers:
         """Show fleet report via callback - aggregates ALL groups"""
         try:
             from datetime import datetime
-            import sqlite3
+            from utils import FleetReportFormatter
             
             now = datetime.now()
             year = now.year
             month = now.month
-            month_name = f"{year}年{month}月"
             
-            # Get ALL transactions from ALL groups for current month with real group names
-            async with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT t.group_id, t.date, t.currency, t.amount, t.transaction_type,
-                           COALESCE(g.group_name, 
-                               CASE 
-                                   WHEN t.group_id < 0 THEN 'Group_' || ABS(t.group_id)
-                                   ELSE 'Private_' || t.group_id
-                               END) as group_name
-                    FROM transactions t
-                    LEFT JOIN groups g ON t.group_id = g.group_id
-                    WHERE strftime('%Y', t.date) = ? AND strftime('%m', t.date) = ?
-                """, (str(year), f"{month:02d}"))
-                
-                all_transactions = []
-                for row in cursor.fetchall():
-                    all_transactions.append({
-                        'group_id': row[0],
-                        'date': row[1],
-                        'currency': row[2],
-                        'amount': row[3],
-                        'transaction_type': row[4],
-                        'group_name': row[5]
-                    })
-                
-            transactions = all_transactions
+            # Get all groups transactions
+            all_groups_data = await self.db.get_all_groups_transactions(month, year)
             
-            # Get exchange rates for calculations from database
-            import timezone_utils
-            today = timezone_utils.get_taiwan_today()
-            today_rate = await self.db.get_exchange_rate(today)
-            if not today_rate:
-                today_rate = 30.2  # Default rate
+            # Format data for fleet report formatter
+            fleet_formatter = FleetReportFormatter()
+            report = fleet_formatter.format_fleet_report(all_groups_data)
             
-            cn_rate = 7.2  # Default CNY rate
-            
-            # Calculate totals
-            tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
-            cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
-            
-            # Calculate USDT totals by summing daily USDT amounts (not dividing total by single rate)
-            tw_usdt_total = 0
-            cn_usdt_total = 0
-            
-            # Pre-calculate daily USDT totals for accurate fleet reporting
-            daily_usdt_totals = {}
-            for t in transactions:
-                if t['transaction_type'] == 'income':
-                    trans_date = t['date']
-                    if isinstance(trans_date, str):
-                        trans_date = datetime.strptime(trans_date, '%Y-%m-%d').date()
-                    
-                    day_key = trans_date.strftime('%m/%d')
-                    
-                    if day_key not in daily_usdt_totals:
-                        daily_usdt_totals[day_key] = {'TW': 0, 'CN': 0}
-                    
-                    daily_usdt_totals[day_key][t['currency']] += t['amount']
-            
-            # Calculate total USDT using daily rates for fleet report
-            for day_key, amounts in daily_usdt_totals.items():
-                day_tw_rate = 33.33 if day_key == '06/01' else 30.0
-                day_cn_rate = 7.5 if day_key == '06/01' else 7.0
-                
-                tw_usdt_total += amounts['TW'] / day_tw_rate if amounts['TW'] > 0 else 0
-                cn_usdt_total += amounts['CN'] / day_cn_rate if amounts['CN'] > 0 else 0
-            
-            # Generate daily breakdown by group
-            daily_data = {}
-            group_names = {}
-            
-            for transaction in transactions:
-                from datetime import datetime
-                trans_date = transaction['date']
-                # Convert string to date object if needed
-                if isinstance(trans_date, str):
-                    trans_date = datetime.strptime(trans_date, '%Y-%m-%d').date()
-                
-                date_key = trans_date.strftime('%m/%d')
-                
-                group_id = transaction['group_id']
-                group_name = transaction.get('group_name', f'Group_{group_id}')
-                
-                # Store group name for later use
-                group_names[group_id] = group_name
-                
-                if date_key not in daily_data:
-                    daily_data[date_key] = {}
-                
-                if group_id not in daily_data[date_key]:
-                    daily_data[date_key][group_id] = {'TW': 0, 'CN': 0, 'group_name': group_name}
-                
-                if transaction['transaction_type'] == 'income':
-                    daily_data[date_key][group_id][transaction['currency']] += transaction['amount']
-            
-            # Calculate total USDT with dynamic formatting
-            total_usdt = tw_usdt_total + cn_usdt_total
-            
-            # Create dynamic emojis based on performance
-            performance_emoji = "🚀" if total_usdt > 50000 else "💪" if total_usdt > 30000 else "📈"
-            
-            # Format fleet report with clean formatting
-            report = f"""【{performance_emoji} North™Sea 北金國際 - {month_name}車隊報表】
-<b>◉ 台幣業績</b>
-<code>NT${tw_total:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>
-<b>◉ 人民幣業績</b>
-<code>CN¥{cn_total:,.0f}</code> → <code>USDT${cn_usdt_total:,.2f}</code>
-－－－－－－－－－－"""
-
-            # Sort dates for consistent ordering
-            sorted_dates = sorted(daily_data.keys())
-            
-            for date_key in sorted_dates:
-                groups = daily_data[date_key]
-                
-                # Calculate daily totals across all groups
-                daily_tw_total = sum(group_data['TW'] for group_data in groups.values())
-                daily_cn_total = sum(group_data['CN'] for group_data in groups.values())
-                
-                # Skip days with no transactions
-                if daily_tw_total == 0 and daily_cn_total == 0:
-                    continue
-                
-                # Get exchange rate for this specific date
-                date_obj = datetime.strptime(f"{year}-{date_key}", "%Y-%m/%d").date()
-                daily_tw_rate = await self.db.get_exchange_rate(date_obj)
-                if not daily_tw_rate:
-                    daily_tw_rate = today_rate  # Fallback to today's rate
-                
-                # Get CN exchange rate for this specific date
-                daily_cn_rate = await self.db.get_exchange_rate(date_obj, 'CN')
-                if not daily_cn_rate:
-                    daily_cn_rate = cn_rate  # Fallback to default CN rate
-                    
-                daily_tw_usdt = daily_tw_total / daily_tw_rate if daily_tw_total > 0 else 0
-                daily_cn_usdt = daily_cn_total / daily_cn_rate if daily_cn_total > 0 else 0
-                
-                # Add daily header with actual exchange rates for that day
-                report += f"\n<b>{date_key} 台幣匯率{daily_tw_rate} 人民幣匯率{daily_cn_rate}</b>\n"
-                report += f"<code>NT${daily_tw_total:,.0f}({daily_tw_usdt:.2f}) CN¥{daily_cn_total:,.0f}({daily_cn_usdt:.2f})</code>\n"
-                
-                # Show each group's performance for this day
-                for group_id, group_data in groups.items():
-                    if group_data['TW'] > 0 or group_data['CN'] > 0:
-                        # Use the stored group name
-                        group_name = group_data.get('group_name', f'Group_{group_id}')
-                        
-                        report += f"   • <code>NT${group_data['TW']:,.0f} CN¥{group_data['CN']:,.0f} {group_name}</code>\n"
-            
-            report += "\n－－－－－－－－－－"
-
             keyboard = BotKeyboards.get_fleet_report_keyboard()
             await query.edit_message_text(
-                text=report, 
+                report,
                 parse_mode='HTML',
                 reply_markup=keyboard
             )

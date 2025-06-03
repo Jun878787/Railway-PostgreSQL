@@ -76,6 +76,7 @@ class TransactionParser:
             amount = None
             transaction_type = None
             
+            # First try with explicit + or - signs
             for curr_key, curr_pattern in cls.CURRENCY_PATTERNS.items():
                 for trans_key, trans_pattern in cls.TRANSACTION_PATTERNS.items():
                     # Pattern: Currency + TransactionType + Amount
@@ -90,6 +91,19 @@ class TransactionParser:
                 
                 if currency:
                     break
+            
+            # If no explicit sign found, try default format: Currency + Amount (assume income)
+            if not currency:
+                for curr_key, curr_pattern in cls.CURRENCY_PATTERNS.items():
+                    # Pattern: Currency + Amount (without explicit + or -)
+                    pattern = f'{curr_pattern}\\s+(\\d+(?:\\.\\d+)?)'
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    
+                    if match:
+                        currency = curr_key
+                        transaction_type = 'income'  # Default to income
+                        amount = float(match.group(1))
+                        break
             
             if not currency or amount is None:
                 return None
@@ -463,3 +477,201 @@ class ValidationUtils:
             return None
         except (ValueError, TypeError):
             return None
+
+
+class PersonalReportFormatter:
+    """Personal report formatting functions"""
+    
+    def __init__(self):
+        self.formatter = ReportFormatter()
+    
+    def safe_decimal_to_float(self, value):
+        """Safely convert Decimal or any numeric value to float"""
+        try:
+            if isinstance(value, Decimal):
+                return float(value)
+            elif isinstance(value, (int, float)):
+                return float(value)
+            elif hasattr(value, '__float__'):
+                return float(value)
+            return 0.0
+        except (ValueError, TypeError):
+            return 0.0
+    
+    def format_personal_report(self, transactions: List[Dict], user_name: str, group_name: str = "個人") -> str:
+        """Format personal financial report"""
+        try:
+            if not transactions:
+                return f"📊 <b>{user_name}個人報表</b>\n\n❌ 本月暫無交易記錄"
+            
+            # Calculate totals by currency
+            totals = {'TW': 0.0, 'CN': 0.0}
+            for t in transactions:
+                try:
+                    if t.get('transaction_type') == 'income':
+                        currency = str(t.get('currency', ''))
+                        amount = self.safe_decimal_to_float(t.get('amount', 0))
+                        if currency in totals:
+                            totals[currency] += amount
+                except Exception as e:
+                    logger.warning(f"Error processing personal transaction: {e}")
+                    continue
+            
+            # Calculate USDT equivalents
+            tw_rate = 30.0
+            cn_rate = 7.0
+            tw_usdt = totals['TW'] / tw_rate if totals['TW'] > 0 else 0
+            cn_usdt = totals['CN'] / cn_rate if totals['CN'] > 0 else 0
+            
+            # Build report
+            report_lines = [
+                f"📊 <b>{user_name}個人報表 ({group_name})</b>",
+                "－－－－－－－－－－",
+                "◉ 台幣業績",
+                f"<code>NT${totals['TW']:,.0f}</code> → <code>USDT${tw_usdt:,.2f}</code>",
+                "◉ 人民幣業績",
+                f"<code>CN¥{totals['CN']:,.0f}</code> → <code>USDT${cn_usdt:,.2f}</code>",
+                "－－－－－－－－－－"
+            ]
+            
+            # Add transaction details by date
+            daily_transactions = {}
+            for t in transactions:
+                try:
+                    date_str = t.get('date')
+                    if isinstance(date_str, str):
+                        try:
+                            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            try:
+                                date_obj = datetime.fromisoformat(str(date_str)).date()
+                            except ValueError:
+                                continue
+                    else:
+                        date_obj = date_str
+                    
+                    day_key = date_obj.strftime('%m/%d')
+                    
+                    if day_key not in daily_transactions:
+                        daily_transactions[day_key] = {'TW': 0, 'CN': 0}
+                    
+                    if t.get('transaction_type') == 'income':
+                        currency = str(t.get('currency', ''))
+                        amount = self.safe_decimal_to_float(t.get('amount', 0))
+                        if currency in daily_transactions[day_key]:
+                            daily_transactions[day_key][currency] += amount
+                            
+                except Exception as e:
+                    logger.warning(f"Error processing daily personal transaction: {e}")
+                    continue
+            
+            # Add daily summaries
+            for day_key in sorted(daily_transactions.keys()):
+                try:
+                    amounts = daily_transactions[day_key]
+                    if amounts['TW'] > 0 or amounts['CN'] > 0:
+                        report_lines.append(f"📅 {day_key}")
+                        if amounts['TW'] > 0:
+                            daily_tw_usdt = amounts['TW'] / tw_rate
+                            report_lines.append(f"台幣: <code>NT${amounts['TW']:,.0f}</code> → <code>USDT${daily_tw_usdt:,.2f}</code>")
+                        if amounts['CN'] > 0:
+                            daily_cn_usdt = amounts['CN'] / cn_rate
+                            report_lines.append(f"人民幣: <code>CN¥{amounts['CN']:,.0f}</code> → <code>USDT${daily_cn_usdt:,.2f}</code>")
+                        report_lines.append("")
+                except Exception as e:
+                    logger.warning(f"Error formatting daily personal summary: {e}")
+                    continue
+            
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error formatting personal report: {e}")
+            return f"❌ 個人報表格式化失敗: {str(e)}"
+
+
+class FleetReportFormatter:
+    """Fleet report formatting functions"""
+    
+    def safe_decimal_to_float(self, value):
+        """Safely convert Decimal or any numeric value to float"""
+        try:
+            if isinstance(value, Decimal):
+                return float(value)
+            elif isinstance(value, (int, float)):
+                return float(value)
+            elif hasattr(value, '__float__'):
+                return float(value)
+            return 0.0
+        except (ValueError, TypeError):
+            return 0.0
+    
+    def format_fleet_report(self, all_groups_data: List[Dict]) -> str:
+        """Format fleet report aggregating all groups"""
+        try:
+            if not all_groups_data:
+                return "📊 <b>車隊報表</b>\n\n❌ 暫無數據"
+            
+            # Calculate total across all groups
+            fleet_totals = {'TW': 0.0, 'CN': 0.0}
+            group_summaries = {}
+            
+            for group_data in all_groups_data:
+                try:
+                    group_name = group_data.get('group_name', '未知群組')
+                    transactions = group_data.get('transactions', [])
+                    
+                    group_totals = {'TW': 0.0, 'CN': 0.0}
+                    
+                    for t in transactions:
+                        if t.get('transaction_type') == 'income':
+                            currency = str(t.get('currency', ''))
+                            amount = self.safe_decimal_to_float(t.get('amount', 0))
+                            if currency in group_totals:
+                                group_totals[currency] += amount
+                                fleet_totals[currency] += amount
+                    
+                    if group_totals['TW'] > 0 or group_totals['CN'] > 0:
+                        group_summaries[group_name] = group_totals
+                        
+                except Exception as e:
+                    logger.warning(f"Error processing group data for fleet report: {e}")
+                    continue
+            
+            # Calculate USDT equivalents
+            tw_rate = 30.0
+            cn_rate = 7.0
+            fleet_tw_usdt = fleet_totals['TW'] / tw_rate if fleet_totals['TW'] > 0 else 0
+            fleet_cn_usdt = fleet_totals['CN'] / cn_rate if fleet_totals['CN'] > 0 else 0
+            
+            # Build fleet report
+            report_lines = [
+                "📊 <b>車隊總報表</b>",
+                "－－－－－－－－－－",
+                "◉ 車隊台幣總業績",
+                f"<code>NT${fleet_totals['TW']:,.0f}</code> → <code>USDT${fleet_tw_usdt:,.2f}</code>",
+                "◉ 車隊人民幣總業績",
+                f"<code>CN¥{fleet_totals['CN']:,.0f}</code> → <code>USDT${fleet_cn_usdt:,.2f}</code>",
+                "－－－－－－－－－－"
+            ]
+            
+            # Add group breakdowns
+            for group_name, totals in group_summaries.items():
+                try:
+                    group_tw_usdt = totals['TW'] / tw_rate if totals['TW'] > 0 else 0
+                    group_cn_usdt = totals['CN'] / cn_rate if totals['CN'] > 0 else 0
+                    
+                    report_lines.append(f"📍 <b>{group_name}</b>")
+                    if totals['TW'] > 0:
+                        report_lines.append(f"台幣: <code>NT${totals['TW']:,.0f}</code> → <code>USDT${group_tw_usdt:,.2f}</code>")
+                    if totals['CN'] > 0:
+                        report_lines.append(f"人民幣: <code>CN¥{totals['CN']:,.0f}</code> → <code>USDT${group_cn_usdt:,.2f}</code>")
+                    report_lines.append("")
+                except Exception as e:
+                    logger.warning(f"Error formatting group summary: {e}")
+                    continue
+            
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error formatting fleet report: {e}")
+            return f"❌ 車隊報表格式化失敗: {str(e)}"
