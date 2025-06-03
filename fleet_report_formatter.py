@@ -118,9 +118,12 @@ class FleetReportFormatter:
                     tw_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'TW')
                     cn_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'CN')
                     
-                    # Get daily exchange rates (simplified for now)
-                    day_tw_rate = 33.33 if day_key == '06/01' else 30.0
-                    day_cn_rate = 7.5 if day_key == '06/01' else 7.0
+                    # Get daily exchange rates from database
+                    from datetime import datetime
+                    date_obj = datetime.strptime(f"2025-{day_key}", "%Y-%m/%d").date()
+                    day_rates = await self.db.get_latest_exchange_rates(date_obj)
+                    day_tw_rate = day_rates.get('TWD', 30.0)
+                    day_cn_rate = day_rates.get('CNY', 7.0)
                     
                     # Calculate USDT equivalents
                     tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0

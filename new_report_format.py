@@ -124,15 +124,16 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "ç
                 if day_key not in daily_transactions:
                     daily_transactions[day_key] = []
                 
-                # Get user display name from database if available
-                user_id = t.get('user_id')
-                if db_manager and user_id:
-                    user_name = await db_manager.get_user_display_name(user_id)
-                else:
-                    user_name = (t.get('display_name') or 
-                               t.get('username') or 
-                               t.get('first_name') or 
-                               f"User{user_id}" if user_id else "Unknown")
+                # Get user display name - prioritize display_name from transaction data
+                user_name = t.get('display_name')
+                if not user_name:
+                    user_id = t.get('user_id')
+                    if db_manager and user_id:
+                        user_name = await db_manager.get_user_display_name(user_id)
+                    if not user_name:
+                        user_name = (t.get('username') or 
+                                   t.get('first_name') or 
+                                   f"User{user_id}" if user_id else "Unknown")
                 
                 transaction_entry = {
                     'amount': safe_float(t.get('amount', 0)),
@@ -157,9 +158,10 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "ç
                 tw_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'TW' and t['type'] == 'income')
                 cn_daily = sum(t['amount'] for t in day_trans if t['currency'] == 'CN' and t['type'] == 'income')
                 
-                # Get daily exchange rates
-                day_tw_rate = 33.33 if day_key == '06/01' else 30.0
-                day_cn_rate = 7.5 if day_key == '06/01' else 7.0
+                # Get daily exchange rates from database
+                day_rates = await db_manager.get_latest_exchange_rates(date_obj) if db_manager else {'TWD': 30.0, 'CNY': 7.0}
+                day_tw_rate = day_rates.get('TWD', 30.0)
+                day_cn_rate = day_rates.get('CNY', 7.0)
                 
                 # Calculate USDT equivalents
                 tw_daily_usdt = tw_daily / day_tw_rate if tw_daily > 0 else 0
@@ -198,7 +200,7 @@ async def format_new_group_report(transactions: List[Dict], group_name: str = "ç
                         if amounts['TW'] > 0:
                             user_line += "  "
                         user_line += f"<code>CNÂ¥{amounts['CN']:,.0f}</code>"
-                    user_line += f" {user}"
+                    user_line += f" <code>{user}</code>"
                     report_lines.append(user_line)
                 
                 report_lines.append("")  # Add spacing between days

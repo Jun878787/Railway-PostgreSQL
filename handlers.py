@@ -673,105 +673,83 @@ class BotHandlers:
         """Handle exchange rate setting commands"""
         try:
             user = update.effective_user
+            user_id = user.id
             
-            # Check if user has permission (basic check)
-            if not user:
-                await update.message.reply_text("❌ 無法識別用戶")
-                return
-            
-            # Parse different exchange rate patterns
-            tw_rate_match = re.search(r'設定(?:(\d{1,2}/\d{1,2}|\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}日))?匯率([\d.]+)', text)
-            cn_rate_match = re.search(r'設定(?:(\d{1,2}/\d{1,2}|\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}日))?CN匯率([\d.]+)', text)
-            
-            if tw_rate_match:
-                # Taiwan dollar rate setting
-                date_str = tw_rate_match.group(1)
-                rate_str = tw_rate_match.group(2)
-                currency_type = "台幣"
-                
-                # Validate rate
-                try:
-                    rate = float(rate_str)
-                    if rate <= 0 or rate > 100:
-                        await update.message.reply_text("❌ 台幣匯率數值無效（範圍: 0.1-100）")
-                        return
-                except ValueError:
-                    await update.message.reply_text("❌ 匯率數值格式錯誤")
+            # Parse exchange rate command format: 匯率設定 YYYY-MM-DD TWD:30.5 CNY:7.2
+            if text.startswith('匯率設定'):
+                parts = text.split()
+                if len(parts) < 3:
+                    await update.message.reply_text(
+                        "❌ 格式錯誤\n正確格式: 匯率設定 2025-06-03 TWD:30.5 CNY:7.2",
+                        parse_mode='HTML'
+                    )
                     return
                 
                 # Parse date
-                if date_str:
-                    from utils import ValidationUtils
-                    rate_date = ValidationUtils.validate_date(date_str)
-                    if not rate_date:
-                        await update.message.reply_text("❌ 日期格式錯誤")
-                        return
-                else:
-                    rate_date = timezone_utils.get_taiwan_today()
-                
-                # Set exchange rate
-                success = await self.db.set_exchange_rate(rate_date, rate, user.id, 'TW')
-                if success:
+                try:
+                    from datetime import datetime
+                    date_str = parts[1]
+                    rate_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
                     await update.message.reply_text(
-                        f"✅ <b>匯率設定成功</b>\n\n"
-                        f"💰 {currency_type}匯率: {rate:.2f}\n"
-                        f"📅 生效日期: {rate_date.strftime('%Y/%m/%d')}\n"
-                        f"👤 設定人員: {user.first_name}",
+                        "❌ 日期格式錯誤\n請使用格式: YYYY-MM-DD (例如: 2025-06-03)",
                         parse_mode='HTML'
                     )
-                else:
-                    await update.message.reply_text("❌ 匯率設定失敗")
-                    
-            elif cn_rate_match:
-                # Chinese yuan rate setting (placeholder - can be enhanced)
-                date_str = cn_rate_match.group(1)
-                rate_str = cn_rate_match.group(2)
-                currency_type = "人民幣"
-                
-                try:
-                    rate = float(rate_str)
-                    if rate <= 0 or rate > 20:
-                        await update.message.reply_text("❌ 人民幣匯率數值無效（範圍: 0.1-20）")
-                        return
-                except ValueError:
-                    await update.message.reply_text("❌ 匯率數值格式錯誤")
                     return
                 
-                # Parse date for CN rate
-                if date_str:
-                    from utils import ValidationUtils
-                    rate_date = ValidationUtils.validate_date(date_str)
-                    if not rate_date:
-                        await update.message.reply_text("❌ 日期格式錯誤")
+                # Parse rate pairs
+                updated_rates = []
+                for rate_part in parts[2:]:
+                    if ':' not in rate_part:
+                        continue
+                    
+                    currency, rate_str = rate_part.split(':', 1)
+                    try:
+                        rate = float(rate_str)
+                        success = await self.db.set_daily_exchange_rate(rate_date, currency, rate, user_id)
+                        if success:
+                            updated_rates.append(f"{currency}: {rate}")
+                        else:
+                            await update.message.reply_text(f"❌ 設定{currency}匯率失敗")
+                            return
+                    except ValueError:
+                        await update.message.reply_text(f"❌ 匯率格式錯誤: {rate_part}")
                         return
-                else:
-                    rate_date = timezone_utils.get_taiwan_today()
                 
-                # Set CN exchange rate to database
-                success = await self.db.set_exchange_rate(rate_date, rate, user.id, 'CN')
-                if success:
+                if updated_rates:
+                    rates_text = '\n'.join(updated_rates)
                     await update.message.reply_text(
-                        f"✅ <b>匯率設定成功</b>\n\n"
-                        f"💴 {currency_type}匯率: {rate:.2f}\n"
-                        f"📅 生效日期: {rate_date.strftime('%Y/%m/%d')}\n"
-                        f"👤 設定人員: {user.first_name}",
+                        f"✅ 匯率更新成功\n📅 日期: {date_str}\n💱 匯率:\n{rates_text}",
                         parse_mode='HTML'
                     )
                 else:
-                    await update.message.reply_text("❌ 人民幣匯率設定失敗")
-            else:
-                await update.message.reply_text(
-                    "❌ 匯率格式錯誤\n\n"
-                    "正確格式:\n"
-                    "• 設定匯率30.5\n"
-                    "• 設定06/01匯率30.2\n"
-                    "• 設定CN匯率7.2\n"
-                    "• 設定06/01CN匯率7.1"
-                )
+                    await update.message.reply_text("❌ 沒有成功更新任何匯率")
+            
+            # Handle quick rate update format: TWD30.5 or CNY7.2
+            elif any(text.startswith(curr) for curr in ['TWD', 'CNY']):
+                from datetime import date
+                today = date.today()
                 
+                for curr in ['TWD', 'CNY']:
+                    if text.startswith(curr):
+                        try:
+                            rate_str = text[3:]  # Remove currency prefix
+                            rate = float(rate_str)
+                            success = await self.db.set_daily_exchange_rate(today, curr, rate, user_id)
+                            if success:
+                                await update.message.reply_text(
+                                    f"✅ {curr}匯率更新成功\n📅 日期: {today}\n💱 匯率: {rate}",
+                                    parse_mode='HTML'
+                                )
+                            else:
+                                await update.message.reply_text(f"❌ 設定{curr}匯率失敗")
+                        except ValueError:
+                            await update.message.reply_text(f"❌ 匯率格式錯誤: {text}")
+                        break
+        
         except Exception as e:
             logger.error(f"Error handling exchange rate setting: {e}")
-            await update.message.reply_text("❌ 處理匯率設定失敗")
+            await update.message.reply_text("❌ 匯率設定處理失敗")
     
     async def callback_query_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline keyboard button callbacks"""
