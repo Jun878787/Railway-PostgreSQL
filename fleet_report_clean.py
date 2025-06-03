@@ -1,5 +1,5 @@
 """
-Clean group report formatting with exact specification format
+Clean fleet report formatting with exact specification format for multi-group reports
 """
 from typing import List, Dict
 from datetime import datetime, date
@@ -18,27 +18,25 @@ def safe_float(value):
     except (ValueError, TypeError):
         return 0.0
 
-async def format_group_report_exact(transactions: List[Dict], group_name: str = "群組", db_manager=None) -> str:
-    """Format group financial report with exact specification format"""
+async def format_fleet_report_exact(all_transactions: List[Dict], month: int, year: int, db_manager=None) -> str:
+    """Format fleet report with exact specification format for multi-group data"""
     try:
-        if not transactions:
-            return f"<b>{group_name} 2025年6月群組報表</b>\n\n❌ 暫無數據"
+        if not all_transactions:
+            return f"<b>North™Sea 北金國際 {year}年{month}月車隊報表</b>\n\n❌ 暫無數據"
         
         logger = logging.getLogger(__name__)
-        logger.info(f"Processing {len(transactions)} transactions for group report")
+        logger.info(f"Processing {len(all_transactions)} transactions for fleet report")
         
         # Initialize daily data structure
         daily_transactions = {}
         daily_rates = {}
         
         # Process transactions and group by date
-        for t in transactions:
+        for t in all_transactions:
             try:
                 if t.get('transaction_type') == 'income':
                     currency = str(t.get('currency', ''))
                     amount = safe_float(t.get('amount', 0))
-                    
-                    logger.info(f"Processing transaction: currency={currency}, amount={amount}, type={t.get('transaction_type')}")
                     
                     # Group by date
                     trans_date = t.get('date')
@@ -52,33 +50,27 @@ async def format_group_report_exact(transactions: List[Dict], group_name: str = 
                         date_obj = trans_date
                     
                     if not date_obj:
-                        logger.warning(f"No valid date found for transaction: {t}")
                         continue
                         
                     day_key = date_obj.strftime('%m/%d')
-                    logger.info(f"Processing date {day_key} for currency {currency} amount {amount}")
                     
                     if day_key not in daily_transactions:
-                        daily_transactions[day_key] = {'TW': [], 'CN': []}
+                        daily_transactions[day_key] = {'TW': 0.0, 'CN': 0.0, 'groups': {}}
                     
-                    # Get user display name
-                    user_id = t.get('user_id')
-                    if db_manager and user_id:
-                        display_name = await db_manager.get_user_display_name(user_id)
-                        if not display_name:
-                            display_name = t.get('display_name') or t.get('username', f"User {user_id}")
-                    else:
-                        display_name = t.get('display_name') or t.get('username', f"User {user_id}")
-                    
-                    # Only add if currency is valid
+                    # Only process if currency is valid
                     if currency in ['TW', 'CN']:
-                        daily_transactions[day_key][currency].append({
-                            'amount': amount,
-                            'user': display_name
-                        })
-                        logger.info(f"Added transaction: {day_key} {currency} {amount} {display_name}")
-                    else:
-                        logger.warning(f"Invalid currency {currency}, skipping transaction")
+                        # Add to daily totals (all groups combined)
+                        daily_transactions[day_key][currency] += amount
+                        
+                        # Group breakdown within each day
+                        group_id = t.get('group_id')
+                        if group_id and db_manager:
+                            group_name = await db_manager.get_group_name(group_id) or f"群組{group_id}"
+                            
+                            if group_name not in daily_transactions[day_key]['groups']:
+                                daily_transactions[day_key]['groups'][group_name] = {'TW': 0.0, 'CN': 0.0}
+                            
+                            daily_transactions[day_key]['groups'][group_name][currency] += amount
                     
                     # Store date object for rate lookup
                     daily_rates[day_key] = date_obj
@@ -92,7 +84,7 @@ async def format_group_report_exact(transactions: List[Dict], group_name: str = 
         # Check if we have any data
         if not daily_transactions:
             logger.warning("No daily transactions found, returning empty data message")
-            return f"<b>{group_name} 2025年6月群組報表</b>\n\n❌ 暫無數據"
+            return f"<b>North™Sea 北金國際 {year}年{month}月車隊報表</b>\n\n❌ 暫無數據"
         
         # Calculate overall totals by summing daily USDT equivalents
         overall_tw_usdt = 0.0
@@ -113,33 +105,29 @@ async def format_group_report_exact(transactions: List[Dict], group_name: str = 
                 day_tw_rate = 30.0
                 day_cn_rate = 7.0
             
-            # Calculate daily totals
-            tw_daily = sum(trans['amount'] for trans in day_data['TW'])
-            cn_daily = sum(trans['amount'] for trans in day_data['CN'])
-            
             # Add to overall amounts
-            overall_tw_amount += tw_daily
-            overall_cn_amount += cn_daily
+            overall_tw_amount += day_data['TW']
+            overall_cn_amount += day_data['CN']
             
             # Convert to USDT using daily rates and accumulate
-            if tw_daily > 0:
-                overall_tw_usdt += tw_daily / day_tw_rate
-            if cn_daily > 0:
-                overall_cn_usdt += cn_daily / day_cn_rate
+            if day_data['TW'] > 0:
+                overall_tw_usdt += day_data['TW'] / day_tw_rate
+            if day_data['CN'] > 0:
+                overall_cn_usdt += day_data['CN'] / day_cn_rate
         
         # Build report
         report_lines = [
-            f"<b>{group_name} 2025年6月群組報表</b>",
+            f"<b>North™Sea 北金國際 {year}年{month}月車隊報表</b>",
             ""
         ]
         
         # Overall totals section
         if overall_tw_amount > 0:
-            report_lines.append(f"◉ 台幣業績")
+            report_lines.append("◉ 台幣業績")
             report_lines.append(f"NT${overall_tw_amount:,.0f} → USDT${overall_tw_usdt:,.2f}")
         
         if overall_cn_amount > 0:
-            report_lines.append(f"◉ 人民幣業績")
+            report_lines.append("◉ 人民幣業績")
             report_lines.append(f"CN¥{overall_cn_amount:,.0f} → USDT${overall_cn_usdt:,.2f}")
         
         report_lines.append("_____________________________")
@@ -159,62 +147,41 @@ async def format_group_report_exact(transactions: List[Dict], group_name: str = 
                     day_tw_rate = 30.0
                     day_cn_rate = 7.0
                 
-                # Calculate daily totals
-                tw_daily = sum(trans['amount'] for trans in day_data['TW'])
-                cn_daily = sum(trans['amount'] for trans in day_data['CN'])
-                
-                if tw_daily > 0 or cn_daily > 0:
+                if day_data['TW'] > 0 or day_data['CN'] > 0:
                     # Date header with rates
                     report_lines.append(f"{day_key} 台幣匯率{day_tw_rate} 人民幣匯率{day_cn_rate}")
                     
-                    # Daily totals line with USDT conversion
+                    # Daily totals line with USDT conversion (all groups combined)
                     daily_line_parts = []
-                    if tw_daily > 0:
-                        tw_daily_usdt = tw_daily / day_tw_rate
-                        daily_line_parts.append(f"NT${tw_daily:,.0f}({tw_daily_usdt:,.2f})")
-                    if cn_daily > 0:
-                        cn_daily_usdt = cn_daily / day_cn_rate
-                        daily_line_parts.append(f"CN¥{cn_daily:,.0f}({cn_daily_usdt:,.2f})")
+                    if day_data['TW'] > 0:
+                        tw_daily_usdt = day_data['TW'] / day_tw_rate
+                        daily_line_parts.append(f"NT${day_data['TW']:,.0f}({tw_daily_usdt:,.2f})")
+                    if day_data['CN'] > 0:
+                        cn_daily_usdt = day_data['CN'] / day_cn_rate
+                        daily_line_parts.append(f"CN¥{day_data['CN']:,.0f}({cn_daily_usdt:,.2f})")
                     
                     if daily_line_parts:
                         report_lines.append("  ".join(daily_line_parts))
                     
-                    # Group user totals for this day
-                    user_totals = {}
-                    
-                    # Process TW transactions
-                    for trans in day_data['TW']:
-                        user = trans['user']
-                        if user not in user_totals:
-                            user_totals[user] = {'TW': 0, 'CN': 0}
-                        user_totals[user]['TW'] += trans['amount']
-                    
-                    # Process CN transactions
-                    for trans in day_data['CN']:
-                        user = trans['user']
-                        if user not in user_totals:
-                            user_totals[user] = {'TW': 0, 'CN': 0}
-                        user_totals[user]['CN'] += trans['amount']
-                    
-                    # Add user detail lines
-                    for user, amounts in user_totals.items():
-                        user_line_parts = []
-                        if amounts['TW'] > 0:
-                            user_line_parts.append(f"NT${amounts['TW']:,.0f}")
-                        if amounts['CN'] > 0:
-                            user_line_parts.append(f"CN¥{amounts['CN']:,.0f}")
+                    # Group breakdown for this day
+                    for group_name, group_amounts in day_data['groups'].items():
+                        group_line_parts = []
+                        if group_amounts['TW'] > 0:
+                            group_line_parts.append(f"NT${group_amounts['TW']:,.0f}")
+                        if group_amounts['CN'] > 0:
+                            group_line_parts.append(f"CN¥{group_amounts['CN']:,.0f}")
                         
-                        if user_line_parts:
-                            user_amounts = "  ".join(user_line_parts)
-                            report_lines.append(f"   • {user_amounts} <code>{user}</code>")
+                        if group_line_parts:
+                            group_amounts_text = "  ".join(group_line_parts)
+                            report_lines.append(f"   • {group_amounts_text} {group_name}")
                     
                     report_lines.append("")  # Blank line between days
                     
             except Exception as e:
-                logger.error(f"Error formatting daily group summary: {e}")
+                logger.error(f"Error formatting daily fleet summary: {e}")
                 continue
         
         return "\n".join(report_lines)
         
     except Exception as e:
-        return f"❌ 群組報表格式化失敗: {str(e)}"
+        return f"❌ 車隊報表格式化失敗: {str(e)}"
