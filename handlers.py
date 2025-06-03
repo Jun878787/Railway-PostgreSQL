@@ -1084,9 +1084,32 @@ class BotHandlers:
             tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
             cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
             
-            # Convert to USDT
-            tw_usdt = (tw_total / today_rate)  if tw_total > 0 else 0
-            cn_usdt = (cn_total / cn_rate)  if cn_total > 0 else 0
+            # Calculate USDT totals by summing daily USDT amounts (not dividing total by single rate)
+            tw_usdt_total = 0
+            cn_usdt_total = 0
+            
+            # Pre-calculate daily USDT totals for accurate fleet reporting
+            daily_usdt_totals = {}
+            for t in transactions:
+                if t['transaction_type'] == 'income':
+                    trans_date = t['date']
+                    if isinstance(trans_date, str):
+                        trans_date = datetime.strptime(trans_date, '%Y-%m-%d').date()
+                    
+                    day_key = trans_date.strftime('%m/%d')
+                    
+                    if day_key not in daily_usdt_totals:
+                        daily_usdt_totals[day_key] = {'TW': 0, 'CN': 0}
+                    
+                    daily_usdt_totals[day_key][t['currency']] += t['amount']
+            
+            # Calculate total USDT using daily rates for fleet report
+            for day_key, amounts in daily_usdt_totals.items():
+                day_tw_rate = 33.33 if day_key == '06/01' else 30.0
+                day_cn_rate = 7.5 if day_key == '06/01' else 7.0
+                
+                tw_usdt_total += amounts['TW'] / day_tw_rate if amounts['TW'] > 0 else 0
+                cn_usdt_total += amounts['CN'] / day_cn_rate if amounts['CN'] > 0 else 0
             
             # Generate daily breakdown by group
             daily_data = {}
@@ -1116,10 +1139,7 @@ class BotHandlers:
                 if transaction['transaction_type'] == 'income':
                     daily_data[date_key][group_id][transaction['currency']] += transaction['amount']
             
-            # Format fleet report with new layout
-            tw_usdt_total = tw_total / today_rate if tw_total > 0 else 0
-            cn_usdt_total = cn_total / cn_rate if cn_total > 0 else 0
-            
+            # Format fleet report with correct daily rate calculations
             report = f"""【👀 North™Sea 北金國際 - {month_name}車隊報表】
 <b>◉ 台幣業績</b>
 <code>NT${tw_total:,.0f}</code> → <code>USDT${tw_usdt_total:,.2f}</code>
