@@ -704,7 +704,7 @@ class BotHandlers:
                     rate_date = timezone_utils.get_taiwan_today()
                 
                 # Set exchange rate
-                success = await self.db.set_exchange_rate(rate_date, rate, user.id)
+                success = await self.db.set_exchange_rate(rate_date, rate, user.id, 'TW')
                 if success:
                     await update.message.reply_text(
                         f"✅ <b>匯率設定成功</b>\n\n"
