@@ -123,10 +123,7 @@ def main():
                 logger.warning("No webhook URL found, falling back to polling")
                 application.run_polling(
                     timeout=30,
-                    read_timeout=10,
-                    write_timeout=10,
-                    connect_timeout=10,
-                    pool_timeout=10
+                    drop_pending_updates=True
                 )
         else:
             logger.info("💻 Local development mode - using polling")
