@@ -281,28 +281,23 @@ class BotHandlers:
             logger.info(f"📊 Transaction parsing result: {transaction_data}")
             
             if not transaction_data:
-                # Priority 1: Exchange rate setting commands (must be first)
-                if ('設定' in text and '匯率' in text):
-                    await self._handle_exchange_rate_setting(update, context, text)
-                    return
-                
-                # Priority 2: Restart command with bot mention
+                # Check for restart command with bot mention
                 if text == "/restart@NorthSea88_Bot":
                     await self.restart_command(update, context)
                     return
                 
-                # Priority 3: Keyboard button commands
+                # Check for keyboard button commands
                 if text in ["💰TW", "💰CN", "💵公桶", "💵私人", "📝選單", "⚙️設置"]:
                     await self._handle_keyboard_buttons(update, context, text)
                     return
                 
-                # Priority 4: Fund management command
+                # Check if it's a fund management command
                 fund_data = self.parser.parse_fund_command(text)
                 if fund_data:
                     await self._handle_fund_command(update, context, fund_data)
                     return
                 
-                # Priority 5: Other commands
+                # Check for other commands
                 await self._handle_other_commands(update, context, text)
                 return
             
@@ -913,11 +908,11 @@ class BotHandlers:
             # Get current month group transactions
             transactions = await self.db.get_group_transactions(chat.id)
             
-            # Import the exact specification formatting function
-            from group_report_clean import format_group_report_exact
+            # Import the updated formatting function
+            from new_report_format import format_new_group_report
             
-            # Format report using exact specification format with daily exchange rates
-            report = await format_group_report_exact(
+            # Format report using updated function with daily exchange rates
+            report = await format_new_group_report(
                 transactions,
                 chat.title or "群組",
                 self.db
@@ -1052,26 +1047,15 @@ class BotHandlers:
         """Show fleet report via callback - aggregates ALL groups"""
         try:
             from datetime import datetime
-            from fleet_report_clean import format_fleet_report_exact
+            from fleet_report_formatter import FleetReportFormatter
             
             now = datetime.now()
             year = now.year
             month = now.month
             
-            # Get all transactions from all groups for fleet report
-            all_transactions = await self.db.get_all_groups_transactions(month, year)
-            
-            if not all_transactions:
-                keyboard = BotKeyboards.get_main_inline_keyboard()
-                await query.edit_message_text(
-                    f"<b>North™Sea 北金國際 {year}年{month}月車隊報表</b>\n\n❌ 暫無數據",
-                    parse_mode='HTML',
-                    reply_markup=keyboard
-                )
-                return
-            
-            # Format fleet report using exact specification format
-            report = await format_fleet_report_exact(all_transactions, month, year, self.db)
+            # Use comprehensive fleet report formatter
+            fleet_formatter = FleetReportFormatter(self.db)
+            report = await fleet_formatter.format_comprehensive_fleet_report(month, year)
             
             keyboard = BotKeyboards.get_fleet_report_keyboard()
             await query.edit_message_text(
@@ -1698,25 +1682,68 @@ class BotHandlers:
         """Handle fleet report generation"""
         try:
             from datetime import datetime
-            from fleet_report_clean import format_fleet_report_exact
+            import calendar
             
             now = datetime.now()
             year = now.year
             month = now.month
+            month_name = f"{year}年{month}月"
+            
+            chat = update.effective_chat
+            user = update.effective_user
             
             # Get current month's transactions from ALL groups for fleet report
-            all_transactions = await self.db.get_all_groups_transactions(month, year)
+            transactions = await self.db.get_all_groups_transactions(month, year)
             
-            if not all_transactions:
-                await update.message.reply_text(
-                    f"<b>North™Sea 北金國際 {year}年{month}月車隊報表</b>\n\n❌ 暫無數據",
-                    parse_mode='HTML'
-                )
-                return
+            # Get exchange rates for calculations from database
+            import timezone_utils
+            today = timezone_utils.get_taiwan_today()
+            today_rate = await self.db.get_exchange_rate(today)
+            if not today_rate:
+                today_rate = 30.2  # Default rate
             
-            # Format fleet report using exact specification format
-            report = await format_fleet_report_exact(all_transactions, month, year, self.db)
+            cn_rate = 7.2  # Default CNY rate
             
+            # Calculate totals
+            tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
+            cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
+            
+            # Convert to USDT
+            tw_usdt = (tw_total / today_rate)  if tw_total > 0 else 0
+            cn_usdt = (cn_total / cn_rate)  if cn_total > 0 else 0
+            
+            # Generate daily breakdown
+            daily_data = {}
+            for transaction in transactions:
+                date_key = transaction['transaction_date'].strftime('%m/%d')
+                day_name = ['一', '二', '三', '四', '五', '六', '日'][transaction['transaction_date'].weekday()]
+                date_display = f"{date_key}({day_name})"
+                
+                if date_display not in daily_data:
+                    daily_data[date_display] = {'TW': 0, 'CN': 0}
+                
+                if transaction['transaction_type'] == 'income':
+                    daily_data[date_display][transaction['currency']] += transaction['amount']
+            
+            # Format fleet report
+            report = f"""【👀 North™Sea 北金國際 - {month_name}車隊報表】
+◉ 台幣總業績
+<code>NT${tw_total:,.0f}</code>  →  <code>USDT${tw_usdt:,.2f}</code>
+◉ 人民幣總業績
+<code>CN¥{cn_total:,.0f}</code>  →  <code>USDT${cn_usdt:,.2f}</code>
+－－－－－－－－－－"""
+
+            for date_display, amounts in daily_data.items():
+                daily_tw_usdt = (amounts['TW'] / today_rate)  if amounts['TW'] > 0 else 0
+                daily_cn_usdt = (amounts['CN'] / cn_rate)  if amounts['CN'] > 0 else 0
+                daily_total_usdt = daily_tw_usdt + daily_cn_usdt
+                
+                report += f"""
+{date_display} <code>台幣{today_rate:.2f} 人民幣{cn_rate:.1f}</code>【<code>{daily_total_usdt:,.2f}</code>】
+{chat.title or '群組'} <code>NT${amounts['TW']:,.0f}  CN¥{amounts['CN']:,.0f}</code>
+--- <code>NT${amounts['TW']:,.0f}</code> → [<code>{daily_tw_usdt:,.2f}</code>]
+--- <code>CN¥{amounts['CN']:,.0f}</code> → [<code>{daily_cn_usdt:,.2f}</code>]"""
+
             await update.message.reply_text(report, parse_mode='HTML')
             
         except Exception as e:
