@@ -276,7 +276,9 @@ class BotHandlers:
                 return
             
             # Parse transaction
+            logger.info(f"🔍 Attempting to parse transaction text: '{text}'")
             transaction_data = self.parser.parse_transaction(text, user.id)
+            logger.info(f"📊 Transaction parsing result: {transaction_data}")
             
             if not transaction_data:
                 # Check for restart command with bot mention
