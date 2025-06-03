@@ -2057,3 +2057,36 @@ class BotHandlers:
             parse_mode='HTML',
             reply_markup=keyboard
         )
+
+    # Handler getter methods for main application
+    def get_start_handler(self):
+        """Get start command handler"""
+        from telegram.ext import CommandHandler
+        return CommandHandler("start", self.start_command)
+    
+    def get_help_handler(self):
+        """Get help command handler"""
+        from telegram.ext import CommandHandler
+        return CommandHandler("help", self.help_command)
+    
+    def get_restart_handler(self):
+        """Get restart command handler"""
+        from telegram.ext import CommandHandler
+        return CommandHandler("restart", self.restart_command)
+    
+    def get_message_handler(self):
+        """Get message handler"""
+        from telegram.ext import MessageHandler, filters
+        return MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_transaction_message)
+    
+    def get_callback_handler(self):
+        """Get callback query handler"""
+        from telegram.ext import CallbackQueryHandler
+        return CallbackQueryHandler(self.callback_query_handler)
+    
+    def get_error_handler(self):
+        """Get error handler"""
+        async def error_handler(update, context):
+            """Handle errors"""
+            logger.error(f"Update {update} caused error {context.error}")
+        return error_handler
