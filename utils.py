@@ -156,12 +156,11 @@ class TransactionParser:
                 if currency:
                     break
             
-            # If no explicit sign found, try default format: Currency + Amount (assume income)
-            # This block might be redundant if the above handles numbers without explicit +/- correctly.
+            # If no explicit sign found, try default format: Currency + Amount (assume expense for CN, income for TW)
             if not currency:
                 for curr_key, curr_pattern in cls.CURRENCY_PATTERNS.items():
                     # Pattern: Currency + Amount (without explicit + or -)
-                    pattern = f'{curr_pattern}\s+(-?\d+(?:\.\d+)?)'
+                    pattern = f'{curr_pattern}\s*([\d]+(?:\.\d+)?)'
                     match = re.search(pattern, text, re.IGNORECASE)
                     
                     if match:
@@ -172,9 +171,9 @@ class TransactionParser:
                             continue
 
                         currency = curr_key
-                        if amount_val < 0:
+                        if curr_key == 'CN':
                             transaction_type = 'expense'
-                            amount = abs(amount_val)
+                            amount = amount_val
                         else:
                             transaction_type = 'income'
                             amount = amount_val
@@ -194,7 +193,7 @@ class TransactionParser:
                         amount_val = float(amount_val_str)
                         if sign == '-':
                             transaction_type = 'expense'
-                            amount = amount_val # Amount is already positive due to regex
+                            amount = -amount_val # 寫入負數，確保資料庫正確
                             if curr_text:
                                 if curr_text.upper() in ['TW', '台幣', '臺幣']:
                                     currency = 'TW'
@@ -202,8 +201,8 @@ class TransactionParser:
                                     currency = 'CN'
                             else:
                                 # Default currency if not specified, e.g., TWD
-                                # This depends on bot's default behavior, assuming TW if not specified
-                                currency = 'TW' # Default to TW if no currency specified with negative amount
+                                # 依預設行為，沒指定幣別時為 TW
+                                currency = 'TW'
                         # else: # This case should not happen with the current regex for negative amounts
                             # transaction_type = 'income'
                             # amount = amount_val
