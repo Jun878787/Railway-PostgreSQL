@@ -15,6 +15,13 @@ def get_group_id() -> int:
     """Get group ID from environment"""
     return int(os.getenv('GROUP_ID', '0'))
 
+def get_group_ids() -> list:
+    """Get group IDs from environment, support multiple IDs separated by comma"""
+    group_ids_str = os.getenv('GROUP_ID', '')
+    if group_ids_str:
+        return [int(x.strip()) for x in group_ids_str.split(',') if x.strip()]
+    return []
+
 def get_admin_ids() -> List[int]:
     """Get admin IDs from environment"""
     admin_ids_str = os.getenv('ADMIN_IDS', '')

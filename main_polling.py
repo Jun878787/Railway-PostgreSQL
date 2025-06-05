@@ -27,15 +27,17 @@ logger = logging.getLogger(__name__)
 async def post_init(application):
     """Post initialization setup"""
     try:
-        group_id = int(GROUP_ID)
-        await application.bot.send_message(
-            chat_id=group_id,
-            text="🤖 <b>北金管家機器人已啟動</b>\n\n"
-                 "✅ 系統正常運行\n"
-                 "🔧 所有功能已就緒\n"
-                 "📊 準備開始記帳服務",
-            parse_mode='HTML'
-        )
+        from config import get_group_ids
+        group_ids = get_group_ids()
+        for group_id in group_ids:
+            await application.bot.send_message(
+                chat_id=group_id,
+                text="🤖 <b>北金管家機器人已啟動</b>\n\n"
+                     "✅ 系統正常運行\n"
+                     "🔧 所有功能已就緒\n"
+                     "📊 準備開始記帳服務",
+                parse_mode='HTML'
+            )
     except Exception as e:
         logger.error(f"Failed to send startup notification: {e}")
 
