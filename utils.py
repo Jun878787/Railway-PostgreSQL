@@ -123,31 +123,94 @@ class TransactionParser:
             for curr_key, curr_pattern in cls.CURRENCY_PATTERNS.items():
                 for trans_key, trans_pattern in cls.TRANSACTION_PATTERNS.items():
                     # Pattern: Currency + TransactionType + Amount
-                    pattern = f'{curr_pattern}\\s*{trans_pattern}\\s*(\\d+(?:\\.\\d+)?)'
+                    # Allow negative sign directly before amount for expense
+                    pattern = f'{curr_pattern}\s*(?:{trans_pattern}\s*)?(-?\d+(?:\.\d+)?)'
                     match = re.search(pattern, text, re.IGNORECASE)
                     
                     if match:
+                        amount_str = match.group(1)
+                        try:
+                            amount_val = float(amount_str)
+                        except ValueError:
+                            continue # Invalid amount
+
                         currency = curr_key
-                        transaction_type = trans_key
-                        amount = float(match.group(1))
+                        # Determine transaction type based on sign of amount if not explicitly given by +/- symbols
+                        if trans_pattern in text or amount_val < 0:
+                            transaction_type = 'expense' if amount_val < 0 else trans_key
+                            if transaction_type == 'expense' and amount_val > 0:
+                                amount_val = -amount_val # Ensure amount is negative for expense if not already
+                        else:
+                            transaction_type = 'income'
+                        
+                        amount = abs(amount_val) # Store absolute amount, type indicates sign
+                        if transaction_type == 'expense' and match.group(0).count('-') + match.group(0).count('－') == 0 and not amount_str.startswith('-'):
+                            # If it's an expense but no explicit minus sign was found with the currency token, and amount is positive, it's likely a parsing error or ambiguous input.
+                            # For example "CN500" could be income, but if context implies expense, this logic needs refinement.
+                            # For now, if no explicit sign, and it's not negative, assume income unless context changes this.
+                            # This part might need more sophisticated logic if "CN500" can mean expense in some contexts.
+                            pass # Keep as is, or add specific logic if needed
+
                         break
                 
                 if currency:
                     break
             
             # If no explicit sign found, try default format: Currency + Amount (assume income)
+            # This block might be redundant if the above handles numbers without explicit +/- correctly.
             if not currency:
                 for curr_key, curr_pattern in cls.CURRENCY_PATTERNS.items():
                     # Pattern: Currency + Amount (without explicit + or -)
-                    pattern = f'{curr_pattern}\\s+(\\d+(?:\\.\\d+)?)'
+                    pattern = f'{curr_pattern}\s+(-?\d+(?:\.\d+)?)'
                     match = re.search(pattern, text, re.IGNORECASE)
                     
                     if match:
+                        amount_str = match.group(1)
+                        try:
+                            amount_val = float(amount_str)
+                        except ValueError:
+                            continue
+
                         currency = curr_key
-                        transaction_type = 'income'  # Default to income
-                        amount = float(match.group(1))
+                        if amount_val < 0:
+                            transaction_type = 'expense'
+                            amount = abs(amount_val)
+                        else:
+                            transaction_type = 'income'
+                            amount = amount_val
                         break
             
+            if not currency or amount is None:
+                 # Try parsing format like -500 or -CN500
+                # Regex for optional currency, mandatory minus, then amount
+                # Adjusted to be more specific for negative amounts without explicit currency type before them
+                pattern_neg_amount = r'(-)(?:(TW|台幣|臺幣|CN|人民幣|RMB)\s*)?(\d+(?:\.\d+)?)'
+                match_neg_amount = re.search(pattern_neg_amount, text, re.IGNORECASE)
+                if match_neg_amount:
+                    sign = match_neg_amount.group(1)
+                    curr_text = match_neg_amount.group(2)
+                    amount_val_str = match_neg_amount.group(3)
+                    try:
+                        amount_val = float(amount_val_str)
+                        if sign == '-':
+                            transaction_type = 'expense'
+                            amount = amount_val # Amount is already positive due to regex
+                            if curr_text:
+                                if curr_text.upper() in ['TW', '台幣', '臺幣']:
+                                    currency = 'TW'
+                                elif curr_text.upper() in ['CN', '人民幣', 'RMB']:
+                                    currency = 'CN'
+                            else:
+                                # Default currency if not specified, e.g., TWD
+                                # This depends on bot's default behavior, assuming TW if not specified
+                                currency = 'TW' # Default to TW if no currency specified with negative amount
+                        # else: # This case should not happen with the current regex for negative amounts
+                            # transaction_type = 'income'
+                            # amount = amount_val
+
+                    except ValueError:
+                        pass # Amount not a valid float
+
             if not currency or amount is None:
                 return None
             
@@ -183,13 +246,26 @@ class TransactionParser:
             
             for fund_key, fund_pattern in fund_patterns.items():
                 for op_key, op_pattern in cls.TRANSACTION_PATTERNS.items():
-                    pattern = f'{fund_pattern}\\s*{op_pattern}\\s*(\\d+(?:\\.\\d+)?)'
+                    # Allow negative sign directly before amount for expense
+                    pattern = f'{fund_pattern}\s*(?:{op_pattern}\s*)?(-?\d+(?:\.\d+)?)'
                     match = re.search(pattern, text, re.IGNORECASE)
                     
                     if match:
+                        amount_str = match.group(1)
+                        try:
+                            amount_val = float(amount_str)
+                        except ValueError:
+                            continue
+
                         fund_type = fund_key
-                        operation = op_key
-                        amount = float(match.group(1))
+                        if op_pattern in text or amount_val < 0:
+                            operation = 'expense' if amount_val < 0 else op_key
+                            if operation == 'expense' and amount_val > 0:
+                                amount_val = -amount_val
+                        else:
+                            operation = 'income'
+                        
+                        amount = abs(amount_val)
                         break
                 
                 if fund_type:
