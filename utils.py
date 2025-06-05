@@ -104,15 +104,15 @@ class TransactionParser:
                         elif len(match.groups()) == 3:  # YYYY-MM-DD
                             year, month, day = match.groups()
                             transaction_date = date(int(year), int(month), int(day))
-                        
                         # Remove date from text
                         text = re.sub(pattern, '', text).strip()
                         break
                     except ValueError:
                         continue
-            
+
             if not transaction_date:
-                transaction_date = date.today()
+                # 強制要求必須輸入日期，否則回傳 None 代表解析失敗
+                return None
             
             # Parse currency and amount
             currency = None
@@ -135,19 +135,23 @@ class TransactionParser:
                             continue # Invalid amount
 
                         currency = curr_key
-                        # Determine transaction type based on sign of amount if not explicitly given by +/- symbols
-                        if trans_pattern in text or amount_val < 0:
-                            transaction_type = 'expense' if amount_val < 0 else trans_key
-                            if transaction_type == 'expense' and amount_val > 0:
-                                amount_val = -amount_val # Ensure amount is negative for expense if not already
-                        else:
+                        # Determine transaction type based on explicit sign or inferred from amount
+                        if trans_key == 'expense' or amount_val < 0:
+                            transaction_type = 'expense'
+                            amount = abs(amount_val) # Store absolute amount
+                        elif trans_key == 'income' or amount_val >= 0:
                             transaction_type = 'income'
-                        
-                        amount = abs(amount_val) # Store absolute amount, type indicates sign
-                        if transaction_type == 'expense' and match.group(0).count('-') + match.group(0).count('－') == 0 and not amount_str.startswith('-'):
-                            # If it's an expense but no explicit minus sign was found with the currency token, and amount is positive, it's likely a parsing error or ambiguous input.
-                            # For example "CN500" could be income, but if context implies expense, this logic needs refinement.
-                            # For now, if no explicit sign, and it's not negative, assume income unless context changes this.
+                            amount = abs(amount_val) # Store absolute amount
+                        else:
+                            # Fallback for ambiguous cases, assume income if no explicit sign
+                            transaction_type = 'income'
+                            amount = abs(amount_val)
+
+                        # If a transaction type was explicitly matched by pattern, use it
+                        if match.group(0).count('+') + match.group(0).count('＋') > 0:
+                            transaction_type = 'income'
+                        elif match.group(0).count('-') + match.group(0).count('－') > 0:
+                            transaction_type = 'expense'
                             # This part might need more sophisticated logic if "CN500" can mean expense in some contexts.
                             pass # Keep as is, or add specific logic if needed
 
