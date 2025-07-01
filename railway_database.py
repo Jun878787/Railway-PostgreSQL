@@ -264,24 +264,50 @@ class RailwayDatabaseManager:
                 conn = self.get_connection()
                 try:
                     cursor = conn.cursor()
-                    
+
                     query = "SELECT * FROM transactions WHERE group_id = %s"
                     params = [group_id]
-                    
+
                     if month and year:
                         query += " AND EXTRACT(MONTH FROM date) = %s AND EXTRACT(YEAR FROM date) = %s"
                         params.extend([month, year])
-                    
+
                     query += " ORDER BY date DESC"
-                    
+
                     cursor.execute(query, params)
                     results = cursor.fetchall()
-                    
+
                     return [dict(row) for row in results] if results else []
                 finally:
                     conn.close()
         except Exception as e:
             logger.error(f"Error getting group transactions: {e}")
+            return []
+
+    async def get_group_transactions_by_date(self, group_id: int, target_date: date) -> List[Dict]:
+        """Get all transactions for a specific group on a specific date"""
+        try:
+            async with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+
+                    cursor.execute("""
+                    SELECT t.*, u.username, u.display_name, u.first_name 
+                    FROM transactions t
+                    LEFT JOIN users u ON t.user_id = u.user_id
+                    WHERE t.group_id = %s AND t.date = %s
+                    ORDER BY t.created_at DESC
+                    """, (group_id, target_date))
+
+                    rows = cursor.fetchall()
+
+                    return [dict(row) for row in rows]
+                finally:
+                    conn.close()
+
+        except Exception as e:
+            logger.error(f"Error getting group transactions by date: {e}")
             return []
     
     async def get_all_groups_transactions(self, month: int = None, year: int = None) -> List[Dict]:
@@ -535,7 +561,7 @@ class RailwayDatabaseManager:
                                 rates['TWD'] = rate
                             elif currency == 'CN' and 'CNY' not in rates:
                                 rates['CNY'] = rate
-                    
+                            
                     # Ensure we have both currencies with fallback to defaults
                     if 'TWD' not in rates:
                         rates['TWD'] = 30.0
