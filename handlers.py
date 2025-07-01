@@ -1915,17 +1915,35 @@ class BotHandlers:
     async def _get_daily_total(self, user_id: int, group_id: int, target_date: date) -> int:
         """獲取指定日期的總計"""
         try:
-            async with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                # 修改查詢以包含所有交易類型的收入
-                cursor.execute("""
-                SELECT SUM(amount) as total FROM transactions 
-                WHERE group_id = ? AND date = ? AND transaction_type = 'income'
-                """, (group_id, target_date))
-                result = cursor.fetchone()
-                total = result[0] if result and result[0] else 0
-                logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
-                return int(total)
+            # 檢查是否使用PostgreSQL
+            if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
+                # PostgreSQL (Railway)
+                async with self.db._lock:
+                    conn = self.db.get_connection()
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                        SELECT SUM(amount) as total FROM transactions 
+                        WHERE group_id = %s AND date = %s AND transaction_type = 'income'
+                        """, (group_id, target_date))
+                        result = cursor.fetchone()
+                        total = result['total'] if result and result['total'] else 0
+                        logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
+                        return int(total)
+                    finally:
+                        conn.close()
+            else:
+                # SQLite (local)
+                async with self.db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    SELECT SUM(amount) as total FROM transactions 
+                    WHERE group_id = ? AND date = ? AND transaction_type = 'income'
+                    """, (group_id, target_date))
+                    result = cursor.fetchone()
+                    total = result[0] if result and result[0] else 0
+                    logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
+                    return int(total)
         except Exception as e:
             logger.error(f"Error getting daily total: {e}")
             return 0
@@ -1933,17 +1951,35 @@ class BotHandlers:
     async def _get_monthly_total(self, user_id: int, group_id: int, year: int, month: int) -> int:
         """獲取指定月份的總計"""
         try:
-            async with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                # 修改查詢以包含所有交易類型的收入
-                cursor.execute("""
-                SELECT SUM(amount) as total FROM transactions 
-                WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
-                """, (group_id, str(year), f"{month:02d}"))
-                result = cursor.fetchone()
-                total = result[0] if result and result[0] else 0
-                logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
-                return int(total)
+            # 檢查是否使用PostgreSQL
+            if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
+                # PostgreSQL (Railway)
+                async with self.db._lock:
+                    conn = self.db.get_connection()
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                        SELECT SUM(amount) as total FROM transactions 
+                        WHERE group_id = %s AND EXTRACT(YEAR FROM date) = %s AND EXTRACT(MONTH FROM date) = %s AND transaction_type = 'income'
+                        """, (group_id, year, month))
+                        result = cursor.fetchone()
+                        total = result['total'] if result and result['total'] else 0
+                        logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
+                        return int(total)
+                    finally:
+                        conn.close()
+            else:
+                # SQLite (local)
+                async with self.db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    SELECT SUM(amount) as total FROM transactions 
+                    WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
+                    """, (group_id, str(year), f"{month:02d}"))
+                    result = cursor.fetchone()
+                    total = result[0] if result and result[0] else 0
+                    logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
+                    return int(total)
         except Exception as e:
             logger.error(f"Error getting monthly total: {e}")
             return 0
