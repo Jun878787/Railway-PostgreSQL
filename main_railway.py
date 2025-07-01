@@ -48,24 +48,17 @@ def main():
     try:
         logger.info("🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...")
         
-        # Initialize database manager
-        # Check if we're in Railway environment, otherwise use SQLite
-        import os
-        database_url = os.getenv('DATABASE_URL')
-        railway_env = os.getenv('RAILWAY_ENVIRONMENT')
-        
-        if database_url and 'postgresql' in database_url and railway_env:
-            logger.info("🔗 Connecting to PostgreSQL database...")
-            try:
-                from railway_database import RailwayDatabaseManager as DatabaseManager
-                db_manager = DatabaseManager()
-            except Exception as e:
-                logger.warning(f"PostgreSQL connection failed: {e}")
-                logger.info("🔗 Falling back to SQLite database...")
-                from database import DatabaseManager
-                db_manager = DatabaseManager()
-        else:
-            logger.info("🔗 Using SQLite database for local development...")
+        # Initialize database manager - force PostgreSQL
+        logger.info("🔗 Connecting to Railway PostgreSQL database...")
+        try:
+            # Set the DATABASE_URL to the specified PostgreSQL connection
+            os.environ['DATABASE_URL'] = 'postgresql://postgres:juwEtDGjMgJNAIqpcComovqkRXJdDxxZ@yamabiko.proxy.rlwy.net:24802/railway'
+            from railway_database import RailwayDatabaseManager as DatabaseManager
+            db_manager = DatabaseManager()
+            logger.info("✅ Successfully connected to Railway PostgreSQL")
+        except Exception as e:
+            logger.error(f"❌ PostgreSQL connection failed: {e}")
+            logger.info("🔗 Falling back to SQLite database...")
             from database import DatabaseManager
             db_manager = DatabaseManager()
         
