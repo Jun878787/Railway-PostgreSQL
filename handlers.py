@@ -2050,10 +2050,14 @@ class BotHandlers:
             weekdays = ['一', '二', '三', '四', '五', '六', '日']
             weekday = weekdays[today.weekday()]
             
+            # 添加時間戳確保內容唯一性
+            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M')
+            
             report = f"""<b>◉ 本日總出款</b>
 <code>NT${total_payout:,.0f}</code>
 －－－－－－－－－－
-{today.strftime('%Y年%m月%d日')} ({weekday}) 收支明細"""
+{today.strftime('%Y年%m月%d日')} ({weekday}) 收支明細
+<i>更新時間: {current_time}</i>"""
 
             # 如果有用戶記錄，顯示詳細資訊
             if user_details:
@@ -2061,6 +2065,7 @@ class BotHandlers:
                     if amount > 0:
                         report += f"\n{user} <code>NT${amount:,.0f}</code>"
                 logger.info(f"Generated report with {len(user_details)} users")
+                report += f"\n\n📊 共 {len(user_details)} 筆記錄"
             else:
                 report += "\n\n📝 今日暫無記錄"
                 logger.warning("No user details found in transactions")
@@ -2109,10 +2114,13 @@ class BotHandlers:
             total_usdt = tw_usdt + cn_usdt
 
             # 生成月度報表
+            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M')
+            
             report = f"""<b>◉ 本月總出款</b>
 <code>NT${tw_total + (cn_total * cn_rate / tw_rate):,.0f}</code> → <code>USDT${total_usdt:,.2f}</code>
 －－－－－－－－－－
-{now.strftime('%Y年%m月')}收支明細"""
+{now.strftime('%Y年%m月')}收支明細
+<i>更新時間: {current_time}</i>"""
 
             # 按日期分組顯示
             daily_data = {}
