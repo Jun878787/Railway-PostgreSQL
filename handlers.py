@@ -1766,15 +1766,31 @@ class BotHandlers:
             import re
             from datetime import datetime
 
-            # 解析出款人格式：【出款人-姓名】或【出款人】
+            # 首先檢查是否包含必要的項目和金額欄位
+            if not ('項目' in text and '金額' in text):
+                return None
+
+            # 解析出款人格式：【出款人-姓名】或【出款人】（可選）
             payer_pattern = r'【([^-]+)(?:-([^】]+))?】'
             payer_match = re.search(payer_pattern, text)
 
-            if not payer_match:
-                return None
-
-            payer_code = payer_match.group(1).strip()
-            payer_name = payer_match.group(2).strip() if payer_match.group(2) else payer_code
+            if payer_match:
+                # 有出款人標記的格式
+                payer_code = payer_match.group(1).strip()
+                payer_name = payer_match.group(2).strip() if payer_match.group(2) else payer_code
+            else:
+                # 檢查是否為新格式（文字開頭為出款人代碼）
+                lines = text.strip().split('\n')
+                first_line = lines[0].strip()
+                
+                # 如果第一行只是簡短代碼且下一行是項目，則認為是新格式
+                if len(first_line) <= 10 and len(lines) > 1 and '項目' in lines[1]:
+                    payer_code = first_line
+                    payer_name = first_line
+                else:
+                    # 如果沒有明確的出款人，使用用戶名作為預設
+                    payer_code = "未指定"
+                    payer_name = "未指定"
 
             # 解析項目
             item_pattern = r'項目[：:]\s*([^\n]+)'
@@ -1838,6 +1854,15 @@ class BotHandlers:
             if chat.type in ['group', 'supergroup'] and chat.title:
                 await self.db.add_or_update_group(chat.id, chat.title)
 
+            # 如果沒有指定出款人，使用發言人的名稱
+            payer_name = record['payer_name']
+            if payer_name == "未指定":
+                # 使用 @ 標記格式顯示發言人
+                if user.username:
+                    payer_name = f"@{user.username}"
+                else:
+                    payer_name = user.first_name or user.full_name or f"User{user.id}"
+
             # 記錄交易（預設為台幣收入）
             today = datetime.now().date()
             success = await self.db.add_transaction(
@@ -1848,7 +1873,7 @@ class BotHandlers:
                 amount=record['amount'],
                 transaction_type='income',
                 created_by=user.id,
-                description=f"出款人: {record['payer_name']} | 項目: {record['item']} | 銀行: {record['bank']}"
+                description=f"出款人: {payer_name} | 項目: {record['item']} | 銀行: {record['bank']}"
             )
 
             if success:
@@ -1864,7 +1889,7 @@ class BotHandlers:
                 response_msg = f"""已經收到您的記帳紀錄！
 
 {today_str} ({weekday})
-出款人：{record['payer_name']} 金額：{record['amount']:,}
+出款人：{payer_name} 金額：{record['amount']:,}
 
 📊 今日總計：{daily_total:,}
 📊 本月總計：{monthly_total:,}"""
