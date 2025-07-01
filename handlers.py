@@ -293,7 +293,7 @@ class BotHandlers:
                     return
                 
                 # Check for keyboard button commands
-                if text in ["💰TW", "💰CN", "💵公桶", "💵私人", "📝選單", "⚙️設置"]:
+                if text in ["📝選單", "📊出款報表"]:
                     await self._handle_keyboard_buttons(update, context, text)
                     return
                 
@@ -364,51 +364,7 @@ class BotHandlers:
             user = update.effective_user
             chat = update.effective_chat
             
-            if button_text == "💰TW":
-                await update.message.reply_text(
-                    "💰 <b>台幣記帳</b>\n\n"
-                    "請輸入交易格式:\n"
-                    "• <code>TW+100</code> - 台幣收入\n"
-                    "• <code>TW-50</code> - 台幣支出\n"
-                    "• <code>12/25 TW+100</code> - 指定日期",
-                    parse_mode='HTML'
-                )
-            
-            elif button_text == "💰CN":
-                await update.message.reply_text(
-                    "💴 <b>人民幣記帳</b>\n\n"
-                    "請輸入交易格式:\n"
-                    "• <code>CN+200</code> - 人民幣收入\n"
-                    "• <code>CN-80</code> - 人民幣支出\n"
-                    "• <code>12/25 CN+200</code> - 指定日期",
-                    parse_mode='HTML'
-                )
-            
-            elif button_text == "💵公桶":
-                balance = await self.db.get_fund_balance('public', chat.id)
-                tw_balance = balance.get('TW', 0)
-                await update.message.reply_text(
-                    f"💵 <b>公桶資金管理</b>\n\n"
-                    f"目前餘額: <code>{tw_balance:,.0f}</code>\n\n"
-                    "操作格式:\n"
-                    "• <code>公桶+1000</code> - 增加資金\n"
-                    "• <code>公桶-500</code> - 減少資金",
-                    parse_mode='HTML'
-                )
-            
-            elif button_text == "💵私人":
-                balance = await self.db.get_fund_balance('private', chat.id)
-                tw_balance = balance.get('TW', 0)
-                await update.message.reply_text(
-                    f"💰 <b>私人資金管理</b>\n\n"
-                    f"目前餘額: <code>{tw_balance:,.0f}</code>\n\n"
-                    "操作格式:\n"
-                    "• <code>私人+1000</code> - 增加資金\n"
-                    "• <code>私人-500</code> - 減少資金",
-                    parse_mode='HTML'
-                )
-            
-            elif button_text == "📝選單":
+            if button_text == "📝選單":
                 main_text = """🏠 <b>北金管家主選單</b>
 
 歡迎使用多幣別財務管理系統！
@@ -426,11 +382,18 @@ class BotHandlers:
                     reply_markup=self.keyboards.get_main_inline_keyboard()
                 )
             
-            elif button_text == "⚙️設置":
+            elif button_text == "📊出款報表":
+                payout_text = """📊 <b>出款報表</b>
+
+請選擇要查看的報表類型：
+
+📅 <b>當日報表</b> - 查看今日出款記錄
+📊 <b>當月報表</b> - 查看本月出款統計
+"""
                 await update.message.reply_text(
-                    "⚙️ <b>設置選單</b>",
+                    payout_text,
                     parse_mode='HTML',
-                    reply_markup=self.keyboards.get_settings_keyboard()
+                    reply_markup=self.keyboards.get_payout_report_keyboard()
                 )
                 
         except Exception as e:
@@ -845,6 +808,10 @@ class BotHandlers:
                 await self._show_group_report(query, query.message.chat)
             elif data == "fleet_current":
                 await self._show_fleet_report(query)
+            elif data == "payout_daily":
+                await self._show_daily_payout_report(query)
+            elif data == "payout_monthly":
+                await self._show_monthly_payout_report(query)
             else:
                 keyboard = BotKeyboards.get_main_inline_keyboard()
                 await query.edit_message_text(
@@ -1907,12 +1874,15 @@ class BotHandlers:
         try:
             async with self.db.get_connection() as conn:
                 cursor = conn.cursor()
+                # 修改查詢以包含所有交易類型的收入
                 cursor.execute("""
                 SELECT SUM(amount) as total FROM transactions 
-                WHERE user_id = ? AND group_id = ? AND date = ? AND transaction_type = 'income'
-                """, (user_id, group_id, target_date))
+                WHERE group_id = ? AND date = ? AND transaction_type = 'income'
+                """, (group_id, target_date))
                 result = cursor.fetchone()
-                return int(result['total']) if result['total'] else 0
+                total = result['total'] if result and result['total'] else 0
+                logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
+                return int(total)
         except Exception as e:
             logger.error(f"Error getting daily total: {e}")
             return 0
@@ -1922,15 +1892,155 @@ class BotHandlers:
         try:
             async with self.db.get_connection() as conn:
                 cursor = conn.cursor()
+                # 修改查詢以包含所有交易類型的收入
                 cursor.execute("""
                 SELECT SUM(amount) as total FROM transactions 
-                WHERE user_id = ? AND group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
-                """, (user_id, group_id, str(year), f"{month:02d}"))
+                WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
+                """, (group_id, str(year), f"{month:02d}"))
                 result = cursor.fetchone()
-                return int(result['total']) if result['total'] else 0
+                total = result['total'] if result and result['total'] else 0
+                logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
+                return int(total)
         except Exception as e:
             logger.error(f"Error getting monthly total: {e}")
             return 0
+
+    async def _show_daily_payout_report(self, query):
+        """Show daily payout report"""
+        try:
+            from datetime import datetime
+            import timezone_utils
+            
+            chat = query.message.chat
+            today = timezone_utils.get_taiwan_today()
+            
+            # 獲取今日所有出款記錄
+            transactions = await self.db.get_group_transactions_by_date(chat.id, today)
+            
+            # 計算總出款
+            total_payout = sum(t['amount'] for t in transactions if t['transaction_type'] == 'income')
+            
+            # 生成當日報表
+            report = f"""<b>◉ 本日總出款</b>
+<code>NT${total_payout:,}</code>
+－－－－－－－－－－
+{today.strftime('%Y年%m月%d日')}收支明細"""
+
+            # 按用戶分組顯示
+            user_totals = {}
+            for t in transactions:
+                if t['transaction_type'] == 'income':
+                    username = t.get('username') or t.get('display_name') or f"User{t.get('user_id', 'Unknown')}"
+                    user_key = f"@{username}"
+                    user_totals[user_key] = user_totals.get(user_key, 0) + t['amount']
+
+            for user, amount in user_totals.items():
+                report += f"\n{user} <code>NT${amount:,}</code>"
+
+            keyboard = self.keyboards.get_payout_report_keyboard()
+            await query.edit_message_text(
+                report,
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+            
+        except Exception as e:
+            logger.error(f"Error showing daily payout report: {e}")
+            keyboard = BotKeyboards.get_main_inline_keyboard()
+            await query.edit_message_text(
+                text="❌ 當日出款報表生成失敗",
+                reply_markup=keyboard
+            )
+
+    async def _show_monthly_payout_report(self, query):
+        """Show monthly payout report"""
+        try:
+            from datetime import datetime
+            import timezone_utils
+            
+            chat = query.message.chat
+            now = timezone_utils.get_taiwan_now()
+            
+            # 獲取本月所有出款記錄
+            transactions = await self.db.get_group_transactions(chat.id)
+            
+            # 計算總出款和USDT價值
+            tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
+            cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
+            
+            # 取得匯率
+            today = timezone_utils.get_taiwan_today()
+            tw_rate = await self.db.get_exchange_rate(today) or 33.25
+            cn_rate = 7.2  # 預設人民幣匯率
+            
+            # 轉換為USDT
+            tw_usdt = tw_total / tw_rate if tw_total > 0 else 0
+            cn_usdt = cn_total / cn_rate if cn_total > 0 else 0
+            total_usdt = tw_usdt + cn_usdt
+            
+            # 生成月度報表
+            report = f"""<b>◉ 本月總出款</b>
+<code>NT${tw_total + (cn_total * cn_rate / tw_rate):,.0f}</code> → <code>USDT${total_usdt:,.2f}</code>
+－－－－－－－－－－
+{now.strftime('%Y年%m月')}收支明細"""
+
+            # 按日期分組顯示
+            daily_data = {}
+            for t in transactions:
+                if t['transaction_type'] == 'income':
+                    date_key = t['transaction_date'].strftime('%m/%d')
+                    weekday_names = ['一', '二', '三', '四', '五', '六', '日']
+                    weekday = weekday_names[t['transaction_date'].weekday()]
+                    date_display = f"{date_key}({weekday})"
+                    
+                    if date_display not in daily_data:
+                        daily_data[date_display] = {'TW': 0, 'CN': 0}
+                    
+                    daily_data[date_display][t['currency']] += t['amount']
+
+            # 按日期排序並顯示
+            sorted_dates = sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('(')[0].split('/'))))
+            
+            tw_dates = []
+            cn_dates = []
+            
+            for date_display in sorted_dates:
+                amounts = daily_data[date_display]
+                if amounts['TW'] > 0:
+                    tw_dates.append(f"<code>{date_display} NT${amounts['TW']:,}</code>")
+                if amounts['CN'] > 0:
+                    cn_dates.append(f"<code>{date_display} CN¥{amounts['CN']:,}</code>")
+
+            # 添加台幣記錄
+            if tw_dates:
+                for i, date_line in enumerate(tw_dates):
+                    report += f"\n{date_line}"
+                    if i < len(tw_dates) - 1 and (i + 1) % 2 == 0:
+                        report += "\n－－－－－－－－－－"
+
+            # 添加人民幣記錄
+            if cn_dates:
+                if tw_dates:
+                    report += "\n－－－－－－－－－－"
+                for i, date_line in enumerate(cn_dates):
+                    report += f"\n{date_line}"
+                    if i < len(cn_dates) - 1 and (i + 1) % 2 == 0:
+                        report += "\n－－－－－－－－－－"
+
+            keyboard = self.keyboards.get_payout_report_keyboard()
+            await query.edit_message_text(
+                report,
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+            
+        except Exception as e:
+            logger.error(f"Error showing monthly payout report: {e}")
+            keyboard = BotKeyboards.get_main_inline_keyboard()
+            await query.edit_message_text(
+                text="❌ 當月出款報表生成失敗",
+                reply_markup=keyboard
+            )
     
     async def _handle_clear_report_date_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE, date_input: str):
         """Handle date input for clearing reports"""

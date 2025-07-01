@@ -26,16 +26,8 @@ class BotKeyboards:
         """Get currency selection keyboard"""
         keyboard = [
             [
-                KeyboardButton("💰TW"),
-                KeyboardButton("💰CN")
-            ],
-            [
-                KeyboardButton("💵公桶"),
-                KeyboardButton("💵私人")
-            ],
-            [
                 KeyboardButton("📝選單"),
-                KeyboardButton("⚙️設置")
+                KeyboardButton("📊出款報表")
             ]
         ]
         return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -319,6 +311,20 @@ class BotKeyboards:
         ]
         return InlineKeyboardMarkup(keyboard)
     
+    @staticmethod
+    def get_payout_report_keyboard():
+        """Get payout report keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("📅當日報表", callback_data="payout_daily"),
+                InlineKeyboardButton("📊當月報表", callback_data="payout_monthly")
+            ],
+            [
+                InlineKeyboardButton("🔙返回主選單", callback_data="main_menu")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
     @staticmethod
     def remove_keyboard():
         """Remove reply keyboard"""

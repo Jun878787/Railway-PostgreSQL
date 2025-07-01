@@ -13479,3 +13479,108 @@ telegram.error.InvalidToken: The token `7946349508:AAH4LF5cz2uhpMf_yKAjnzEqXHRsx
 2025-07-01 02:24:39,160 - __main__ - ERROR - ❌ Error starting bot: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
 
+2025-07-01 02:45:04,170 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+2025-07-01 02:45:04,170 - __main__ - INFO - 🔗 Connecting to PostgreSQL database...
+2025-07-01 02:45:04,171 - railway_database - ERROR - ❌ Error initializing Railway database: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+2025-07-01 02:45:04,171 - __main__ - ERROR - ❌ Error starting bot: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+2025-07-01 03:06:37,683 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ in simple polling mode...
+2025-07-01 03:06:37,795 - database - INFO - ✅ Database initialized successfully
+2025-07-01 03:06:37,796 - database - INFO - ✅ Database initialized successfully
+2025-07-01 03:06:37,796 - googlemaps.client - INFO - API queries_quota: 60
+2025-07-01 03:06:37,796 - list_formatter - INFO - Google Maps client initialized successfully
+2025-07-01 03:06:38,045 - bot - INFO - ✅ Bot application created successfully
+2025-07-01 03:06:38,045 - __main__ - INFO - ✅ Starting bot with polling mode...
+2025-07-01 03:06:38,640 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getMe "HTTP/1.1 200 OK"
+2025-07-01 03:06:38,999 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/sendMessage "HTTP/1.1 400 Bad Request"
+2025-07-01 03:06:38,999 - __main__ - ERROR - Failed to send startup notification: Chat not found
+2025-07-01 03:06:39,184 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/deleteWebhook "HTTP/1.1 200 OK"
+2025-07-01 03:06:39,186 - telegram.ext.Application - INFO - Application started
+2025-07-01 03:06:43,906 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:06:43,907 - bot - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:06:50,258 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:06:50,258 - bot - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:06:58,110 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:06:58,110 - bot - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:07:01,672 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 200 OK"
+2025-07-01 03:07:01,673 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-07-01 03:07:01,674 - telegram.ext.Application - INFO - Application.stop() complete
+2025-07-01 03:09:29,835 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+2025-07-01 03:09:29,835 - __main__ - INFO - 🔗 Using SQLite database for local development...
+2025-07-01 03:09:29,836 - database - INFO - ✅ Database initialized successfully
+2025-07-01 03:09:29,914 - googlemaps.client - INFO - API queries_quota: 60
+2025-07-01 03:09:29,914 - list_formatter - INFO - Google Maps client initialized successfully
+2025-07-01 03:09:29,914 - __main__ - INFO - ✅ All handlers registered successfully
+2025-07-01 03:09:29,914 - __main__ - INFO - 🚂 Railway environment detected: production
+2025-07-01 03:09:29,915 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+2025-07-01 03:09:29,915 - __main__ - WARNING - No webhook URL found, falling back to polling
+2025-07-01 03:09:30,483 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getMe "HTTP/1.1 200 OK"
+2025-07-01 03:09:30,484 - __main__ - INFO - 🔧 Running post-initialization setup...
+2025-07-01 03:09:30,484 - __main__ - INFO - ✅ Post-initialization completed
+2025-07-01 03:09:30,670 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/deleteWebhook "HTTP/1.1 200 OK"
+2025-07-01 03:09:30,671 - telegram.ext.Application - INFO - Application started
+2025-07-01 03:09:35,386 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:09:35,387 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:09:41,233 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:09:41,234 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:09:48,334 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:09:48,335 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:09:54,520 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:09:54,520 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:10:03,629 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:10:03,630 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:10:17,334 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:10:17,335 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:10:37,376 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:10:37,377 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:10:49,659 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 200 OK"
+2025-07-01 03:10:50,691 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/sendMessage "HTTP/1.1 200 OK"
+2025-07-01 03:10:51,071 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/sendMessage "HTTP/1.1 200 OK"
+2025-07-01 03:10:53,508 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:10:53,509 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:10:55,196 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 200 OK"
+2025-07-01 03:10:55,197 - handlers - INFO - 📨 Message handler called
+2025-07-01 03:10:55,197 - handlers - INFO - 👤 User: 7842840472, Chat: -1002589270362
+2025-07-01 03:10:55,197 - handlers - INFO - 💬 Text: 📊出款報表
+2025-07-01 03:10:55,197 - handlers - INFO - 🔍 Attempting to parse transaction text: '📊出款報表'
+2025-07-01 03:10:55,198 - handlers - INFO - 📊 Transaction parsing result: None
+2025-07-01 03:10:55,584 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/sendMessage "HTTP/1.1 200 OK"
+2025-07-01 03:10:59,358 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:10:59,359 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:04,710 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:04,711 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:11,063 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:11,064 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:18,917 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:18,918 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:26,646 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:26,647 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:36,937 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:36,937 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:11:50,508 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:11:50,509 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:12:06,011 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:12:06,011 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:12:29,657 - __main__ - INFO - 🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...
+2025-07-01 03:12:29,657 - __main__ - INFO - 🔗 Using SQLite database for local development...
+2025-07-01 03:12:29,659 - database - INFO - ✅ Database initialized successfully
+2025-07-01 03:12:29,744 - googlemaps.client - INFO - API queries_quota: 60
+2025-07-01 03:12:29,745 - list_formatter - INFO - Google Maps client initialized successfully
+2025-07-01 03:12:29,745 - __main__ - INFO - ✅ All handlers registered successfully
+2025-07-01 03:12:29,745 - __main__ - INFO - 🚂 Railway environment detected: production
+2025-07-01 03:12:29,745 - __main__ - INFO - 🔗 Starting webhook server on port 5000
+2025-07-01 03:12:29,745 - __main__ - WARNING - No webhook URL found, falling back to polling
+2025-07-01 03:12:30,316 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getMe "HTTP/1.1 200 OK"
+2025-07-01 03:12:30,317 - __main__ - INFO - 🔧 Running post-initialization setup...
+2025-07-01 03:12:30,317 - __main__ - INFO - ✅ Post-initialization completed
+2025-07-01 03:12:30,501 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/deleteWebhook "HTTP/1.1 200 OK"
+2025-07-01 03:12:30,504 - telegram.ext.Application - INFO - Application started
+2025-07-01 03:12:35,224 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:12:35,224 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:12:41,081 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:12:41,082 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-01 03:12:48,183 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7946349508:AAF4lbtzRZod-8bY4FSbZb8eMfk4bBttQDQ/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-01 03:12:48,184 - handlers - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running

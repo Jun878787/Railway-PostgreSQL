@@ -188,35 +188,61 @@ class DatabaseManager:
             logger.error(f"Error getting user transactions: {e}")
             return []
     
-    async def get_group_transactions(self, group_id: int, month: int = None, 
-                                   year: int = None) -> List[Dict]:
-        """Get group transactions for specified period"""
+    async def get_group_transactions(self, group_id: int, month: int = None, year: int = None) -> List[Dict]:
+        """Get all transactions for a specific group"""
         try:
             async with self.get_connection() as conn:
                 cursor = conn.cursor()
-                
+
                 if month and year:
-                    cursor.execute("""
-                    SELECT t.*, u.display_name, u.username 
+                    await cursor.execute("""
+                    SELECT t.*, u.username, u.display_name, u.first_name 
                     FROM transactions t
                     LEFT JOIN users u ON t.user_id = u.user_id
                     WHERE t.group_id = ? AND strftime('%Y', t.date) = ? AND strftime('%m', t.date) = ?
-                    ORDER BY t.date DESC
+                    ORDER BY t.date DESC, t.created_at DESC
                     """, (group_id, str(year), f"{month:02d}"))
                 else:
-                    # Current month
-                    current_date = datetime.now()
-                    cursor.execute("""
-                    SELECT t.*, u.display_name, u.username 
+                    current_month = datetime.now().month
+                    current_year = datetime.now().year
+                    await cursor.execute("""
+                    SELECT t.*, u.username, u.display_name, u.first_name 
                     FROM transactions t
                     LEFT JOIN users u ON t.user_id = u.user_id
-                    WHERE t.group_id = ? AND strftime('%Y-%m', t.date) = ?
-                    ORDER BY t.date DESC
-                    """, (group_id, current_date.strftime('%Y-%m')))
-                
-                return [dict(row) for row in cursor.fetchall()]
+                    WHERE t.group_id = ? AND strftime('%Y', t.date) = ? AND strftime('%m', t.date) = ?
+                    ORDER BY t.date DESC, t.created_at DESC
+                    """, (group_id, str(current_year), f"{current_month:02d}"))
+
+                rows = await cursor.fetchall()
+                conn.close()
+
+                return [dict(row) for row in rows]
+
         except Exception as e:
             logger.error(f"Error getting group transactions: {e}")
+            return []
+
+    async def get_group_transactions_by_date(self, group_id: int, target_date: date) -> List[Dict]:
+        """Get all transactions for a specific group on a specific date"""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                await cursor.execute("""
+                SELECT t.*, u.username, u.display_name, u.first_name 
+                FROM transactions t
+                LEFT JOIN users u ON t.user_id = u.user_id
+                WHERE t.group_id = ? AND t.date = ?
+                ORDER BY t.created_at DESC
+                """, (group_id, target_date))
+
+                rows = await cursor.fetchall()
+                conn.close()
+
+                return [dict(row) for row in rows]
+
+        except Exception as e:
+            logger.error(f"Error getting group transactions by date: {e}")
             return []
     
     async def set_exchange_rate(self, rate_date: date, rate: float, set_by: int, currency: str = 'TW') -> bool:
