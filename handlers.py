@@ -1923,7 +1923,7 @@ class BotHandlers:
                 WHERE group_id = ? AND date = ? AND transaction_type = 'income'
                 """, (group_id, target_date))
                 result = cursor.fetchone()
-                total = result['total'] if result and result['total'] else 0
+                total = result[0] if result and result[0] else 0
                 logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
                 return int(total)
         except Exception as e:
@@ -1941,7 +1941,7 @@ class BotHandlers:
                 WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
                 """, (group_id, str(year), f"{month:02d}"))
                 result = cursor.fetchone()
-                total = result['total'] if result and result['total'] else 0
+                total = result[0] if result and result[0] else 0
                 logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
                 return int(total)
         except Exception as e:
