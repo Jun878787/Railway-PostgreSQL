@@ -1994,8 +1994,8 @@ class BotHandlers:
     async def _show_daily_payout_report(self, query):
         """Show daily payout report"""
         try:
-            from datetime import datetime
             import timezone_utils
+            from datetime import datetime
 
             chat = query.message.chat
             today = timezone_utils.get_taiwan_today()
@@ -2003,25 +2003,50 @@ class BotHandlers:
             # 獲取今日所有出款記錄
             transactions = await self.db.get_group_transactions_by_date(chat.id, today)
 
-            # 計算總出款
-            total_payout = sum(t['amount'] for t in transactions if t['transaction_type'] == 'income')
+            # 計算總出款 (正數為收入，負數為支出)
+            total_payout = 0
+            for t in transactions:
+                if t.get('transaction_type') == 'income':
+                    amount = t.get('amount', 0)
+                    if isinstance(amount, (int, float)):
+                        total_payout += amount
 
             # 生成當日報表
+            weekdays = ['一', '二', '三', '四', '五', '六', '日']
+            weekday = weekdays[today.weekday()]
+            
             report = f"""<b>◉ 本日總出款</b>
-<code>NT${total_payout:,}</code>
+<code>NT${total_payout:,.0f}</code>
 －－－－－－－－－－
-{today.strftime('%Y年%m月%d日')}收支明細"""
+{today.strftime('%Y年%m月%d日')} ({weekday}) 收支明細"""
 
             # 按用戶分組顯示
             user_totals = {}
             for t in transactions:
-                if t['transaction_type'] == 'income':
-                    username = t.get('username') or t.get('display_name') or f"User{t.get('user_id', 'Unknown')}"
-                    user_key = f"@{username}"
-                    user_totals[user_key] = user_totals.get(user_key, 0) + t['amount']
+                try:
+                    if t.get('transaction_type') == 'income':
+                        # 優先使用 display_name，然後是 username，最後是 first_name
+                        display_name = (t.get('display_name') or 
+                                      t.get('first_name') or 
+                                      t.get('username') or 
+                                      f"User{t.get('user_id', 'Unknown')}")
+                        
+                        user_key = f"@{display_name}" if not display_name.startswith('@') else display_name
+                        amount = t.get('amount', 0)
+                        
+                        if isinstance(amount, (int, float)):
+                            user_totals[user_key] = user_totals.get(user_key, 0) + amount
+                except Exception as e:
+                    logger.warning(f"Error processing transaction for daily report: {e}")
+                    continue
 
-            for user, amount in user_totals.items():
-                report += f"\n{user} <code>NT${amount:,}</code>"
+            # 如果有用戶記錄，顯示詳細資訊
+            if user_totals:
+                for user, amount in sorted(user_totals.items()):
+                    if amount > 0:
+                        report += f"\n{user} <code>NT${amount:,.0f}</code>"
+            else:
+                report += "\n\n📝 今日暫無記錄"
 
             keyboard = self.keyboards.get_payout_report_keyboard()
             await query.edit_message_text(
@@ -2032,9 +2057,11 @@ class BotHandlers:
 
         except Exception as e:
             logger.error(f"Error showing daily payout report: {e}")
+            # 提供更詳細的錯誤信息
+            error_msg = f"❌ 當日出款報表生成失敗\n\n錯誤詳情: {str(e)}"
             keyboard = BotKeyboards.get_main_inline_keyboard()
             await query.edit_message_text(
-                text="❌ 當日出款報表生成失敗",
+                text=error_msg,
                 reply_markup=keyboard
             )
 
