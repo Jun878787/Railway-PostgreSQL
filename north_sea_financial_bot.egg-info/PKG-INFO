@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: north-sea-financial-bot
+Version: 1.0.0
+Summary: North Sea Financial Management Telegram Bot
+Requires-Python: >=3.11
+Requires-Dist: aiohttp==3.10.11
+Requires-Dist: googlemaps==4.10.0
+Requires-Dist: psycopg2-binary==2.9.10
+Requires-Dist: python-telegram-bot==22.1
+Requires-Dist: telegram==0.0.1
+Requires-Dist: trafilatura==1.12.2

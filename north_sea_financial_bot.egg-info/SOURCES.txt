@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+north_sea_financial_bot.egg-info/PKG-INFO
+north_sea_financial_bot.egg-info/SOURCES.txt
+north_sea_financial_bot.egg-info/dependency_links.txt
+north_sea_financial_bot.egg-info/requires.txt
+north_sea_financial_bot.egg-info/top_level.txt

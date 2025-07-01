@@ -263,23 +263,29 @@ class BotHandlers:
         try:
             logger = logging.getLogger(__name__)
             logger.info(f"📨 Message handler called")
-            
+
             user = update.effective_user
             chat = update.effective_chat
             text = update.message.text
-            
+
             logger.info(f"👤 User: {user.id if user else 'None'}, Chat: {chat.id if chat else 'None'}")
             logger.info(f"💬 Text: {text}")
-            
+
             if not text:
                 logger.warning("No text in message")
                 return
-            
+
+            # Check for financial record message format first
+            financial_record = self._parse_financial_record(text)
+            if financial_record:
+                await self._handle_financial_record(update, context, financial_record)
+                return
+
             # Parse transaction
             logger.info(f"🔍 Attempting to parse transaction text: '{text}'")
             transaction_data = self.parser.parse_transaction(text, user.id)
             logger.info(f"📊 Transaction parsing result: {transaction_data}")
-            
+
             if not transaction_data:
                 # Check for restart command with bot mention
                 if text == "/restart@NorthSea88_Bot":
@@ -1753,6 +1759,153 @@ class BotHandlers:
     async def _handle_initialize_report(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle initialize report - placeholder"""
         await update.message.reply_text("🚧 初始化報表功能開發中...")
+
+    def _parse_financial_record(self, text: str) -> Optional[Dict]:
+        """解析金融記錄訊息格式"""
+        try:
+            import re
+            from datetime import datetime
+
+            # 解析出款人格式：【出款人-姓名】或【出款人】
+            payer_pattern = r'【([^-]+)(?:-([^】]+))?】'
+            payer_match = re.search(payer_pattern, text)
+
+            if not payer_match:
+                return None
+
+            payer_code = payer_match.group(1).strip()
+            payer_name = payer_match.group(2).strip() if payer_match.group(2) else payer_code
+
+            # 解析項目
+            item_pattern = r'項目[：:]\s*([^\n]+)'
+            item_match = re.search(item_pattern, text)
+            item = item_match.group(1).strip() if item_match else "未指定"
+
+            # 解析銀行
+            bank_pattern = r'銀行[：:]\s*([^\n]+)'
+            bank_match = re.search(bank_pattern, text)
+            bank = bank_match.group(1).strip() if bank_match else "未指定"
+
+            # 解析金額
+            amount_pattern = r'金額[：:]\s*(\d+)'
+            amount_match = re.search(amount_pattern, text)
+
+            if not amount_match:
+                return None
+
+            amount = int(amount_match.group(1))
+
+            # 解析代碼（可選）
+            code_pattern = r'代碼[：:]\s*(\d+)'
+            code_match = re.search(code_pattern, text)
+            code = code_match.group(1) if code_match else None
+
+            # 解析帳號（可選）
+            account_pattern = r'帳號[：:]\s*(\d+)'
+            account_match = re.search(account_pattern, text)
+            account = account_match.group(1) if account_match else None
+
+            return {
+                'payer_code': payer_code,
+                'payer_name': payer_name,
+                'item': item,
+                'bank': bank,
+                'amount': amount,
+                'code': code,
+                'account': account
+            }
+
+        except Exception as e:
+            logger.error(f"Error parsing financial record: {e}")
+            return None
+
+    async def _handle_financial_record(self, update: Update, context: ContextTypes.DEFAULT_TYPE, record: Dict):
+        """處理金融記錄訊息"""
+        try:
+            user = update.effective_user
+            chat = update.effective_chat
+
+            # 添加用戶到資料庫
+            await self.db.add_user(
+                user_id=user.id,
+                username=user.username,
+                display_name=user.full_name,
+                first_name=user.first_name,
+                last_name=user.last_name
+            )
+
+            # 自動檢測並保存群組名稱
+            if chat.type in ['group', 'supergroup'] and chat.title:
+                await self.db.add_or_update_group(chat.id, chat.title)
+
+            # 記錄交易（預設為台幣收入）
+            today = datetime.now().date()
+            success = await self.db.add_transaction(
+                user_id=user.id,
+                group_id=chat.id if chat.type in ['group', 'supergroup'] else 0,
+                transaction_date=today,
+                currency='TW',
+                amount=record['amount'],
+                transaction_type='income',
+                created_by=user.id,
+                description=f"出款人: {record['payer_name']} | 項目: {record['item']} | 銀行: {record['bank']}"
+            )
+
+            if success:
+                # 格式化回報訊息
+                today_str = today.strftime('%Y/%m/%d')
+                weekdays = ['一', '二', '三', '四', '五', '六', '日']
+                weekday = weekdays[today.weekday()]
+
+                # 獲取今日和本月總計
+                daily_total = await self._get_daily_total(user.id, chat.id, today)
+                monthly_total = await self._get_monthly_total(user.id, chat.id, today.year, today.month)
+
+                response_msg = f"""已經收到您的記帳紀錄！
+
+{today_str} ({weekday})
+出款人：{record['payer_name']} 金額：{record['amount']:,}
+
+📊 今日總計：{daily_total:,}
+📊 本月總計：{monthly_total:,}"""
+
+                await update.message.reply_text(response_msg)
+            else:
+                await update.message.reply_text("❌ 記帳失敗，請稍後再試")
+
+        except Exception as e:
+            logger.error(f"Error handling financial record: {e}")
+            await update.message.reply_text("❌ 處理記帳記錄時發生錯誤")
+
+    async def _get_daily_total(self, user_id: int, group_id: int, target_date: date) -> int:
+        """獲取指定日期的總計"""
+        try:
+            async with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                SELECT SUM(amount) as total FROM transactions 
+                WHERE user_id = ? AND group_id = ? AND date = ? AND transaction_type = 'income'
+                """, (user_id, group_id, target_date))
+                result = cursor.fetchone()
+                return int(result['total']) if result['total'] else 0
+        except Exception as e:
+            logger.error(f"Error getting daily total: {e}")
+            return 0
+
+    async def _get_monthly_total(self, user_id: int, group_id: int, year: int, month: int) -> int:
+        """獲取指定月份的總計"""
+        try:
+            async with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                SELECT SUM(amount) as total FROM transactions 
+                WHERE user_id = ? AND group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
+                """, (user_id, group_id, str(year), f"{month:02d}"))
+                result = cursor.fetchone()
+                return int(result['total']) if result['total'] else 0
+        except Exception as e:
+            logger.error(f"Error getting monthly total: {e}")
+            return 0
     
     async def _handle_clear_report_date_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE, date_input: str):
         """Handle date input for clearing reports"""
