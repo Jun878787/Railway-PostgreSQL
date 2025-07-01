@@ -2050,14 +2050,16 @@ class BotHandlers:
             weekdays = ['一', '二', '三', '四', '五', '六', '日']
             weekday = weekdays[today.weekday()]
             
-            # 添加時間戳確保內容唯一性
-            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M')
+            # 添加時間戳和隨機要素確保內容唯一性
+            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M:%S')
+            import random
+            unique_id = random.randint(100, 999)
             
             report = f"""<b>◉ 本日總出款</b>
 <code>NT${total_payout:,.0f}</code>
 －－－－－－－－－－
 {today.strftime('%Y年%m月%d日')} ({weekday}) 收支明細
-<i>更新時間: {current_time}</i>"""
+<i>更新時間: {current_time} #{unique_id}</i>"""
 
             # 如果有用戶記錄，顯示詳細資訊
             if user_details:
@@ -2114,13 +2116,15 @@ class BotHandlers:
             total_usdt = tw_usdt + cn_usdt
 
             # 生成月度報表
-            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M')
+            current_time = timezone_utils.get_taiwan_now().strftime('%H:%M:%S')
+            import random
+            unique_id = random.randint(100, 999)
             
             report = f"""<b>◉ 本月總出款</b>
 <code>NT${tw_total + (cn_total * cn_rate / tw_rate):,.0f}</code> → <code>USDT${total_usdt:,.2f}</code>
 －－－－－－－－－－
 {now.strftime('%Y年%m月')}收支明細
-<i>更新時間: {current_time}</i>"""
+<i>更新時間: {current_time} #{unique_id}</i>"""
 
             # 按日期分組顯示
             daily_data = {}
@@ -2165,6 +2169,10 @@ class BotHandlers:
                     if i < len(cn_dates) - 1 and (i + 1) % 2 == 0:
                         report += "\n－－－－－－－－－－"
 
+            # 如果沒有任何記錄
+            if not tw_dates and not cn_dates:
+                report += "\n\n📝 本月暫無記錄"
+
             keyboard = self.keyboards.get_payout_report_keyboard()
             await query.edit_message_text(
                 report,
@@ -2174,9 +2182,10 @@ class BotHandlers:
 
         except Exception as e:
             logger.error(f"Error showing monthly payout report: {e}")
+            error_msg = f"❌ 當月出款報表生成失敗\n\n錯誤詳情: {str(e)}"
             keyboard = BotKeyboards.get_main_inline_keyboard()
             await query.edit_message_text(
-                text="❌ 當月出款報表生成失敗",
+                text=error_msg,
                 reply_markup=keyboard
             )
 
