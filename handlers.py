@@ -2002,14 +2002,49 @@ class BotHandlers:
 
             # 獲取今日所有出款記錄
             transactions = await self.db.get_group_transactions_by_date(chat.id, today)
+            
+            logger.info(f"Found {len(transactions)} transactions for date {today}")
 
             # 計算總出款 (正數為收入，負數為支出)
             total_payout = 0
+            user_details = {}
+            
             for t in transactions:
-                if t.get('transaction_type') == 'income':
-                    amount = t.get('amount', 0)
-                    if isinstance(amount, (int, float)):
-                        total_payout += amount
+                try:
+                    if t.get('transaction_type') == 'income':
+                        amount = t.get('amount', 0)
+                        if isinstance(amount, (int, float)) and amount > 0:
+                            total_payout += amount
+                            
+                            # 從 description 中提取出款人信息，如果沒有則使用用戶信息
+                            description = t.get('description', '')
+                            user_display = None
+                            
+                            # 檢查描述中是否有出款人信息
+                            if '出款人:' in description:
+                                import re
+                                match = re.search(r'出款人:\s*([^|]+)', description)
+                                if match:
+                                    user_display = match.group(1).strip()
+                            
+                            # 如果沒有從描述中找到，使用用戶信息
+                            if not user_display:
+                                user_display = (t.get('display_name') or 
+                                              t.get('first_name') or 
+                                              t.get('username') or 
+                                              f"User{t.get('user_id', 'Unknown')}")
+                            
+                            # 確保用戶名以@開頭
+                            if user_display and not user_display.startswith('@'):
+                                user_display = f"@{user_display}"
+                            
+                            if user_display:
+                                user_details[user_display] = user_details.get(user_display, 0) + amount
+                                logger.info(f"Added {amount} for user {user_display}")
+                            
+                except Exception as e:
+                    logger.warning(f"Error processing transaction: {e}")
+                    continue
 
             # 生成當日報表
             weekdays = ['一', '二', '三', '四', '五', '六', '日']
@@ -2020,33 +2055,15 @@ class BotHandlers:
 －－－－－－－－－－
 {today.strftime('%Y年%m月%d日')} ({weekday}) 收支明細"""
 
-            # 按用戶分組顯示
-            user_totals = {}
-            for t in transactions:
-                try:
-                    if t.get('transaction_type') == 'income':
-                        # 優先使用 display_name，然後是 username，最後是 first_name
-                        display_name = (t.get('display_name') or 
-                                      t.get('first_name') or 
-                                      t.get('username') or 
-                                      f"User{t.get('user_id', 'Unknown')}")
-                        
-                        user_key = f"@{display_name}" if not display_name.startswith('@') else display_name
-                        amount = t.get('amount', 0)
-                        
-                        if isinstance(amount, (int, float)):
-                            user_totals[user_key] = user_totals.get(user_key, 0) + amount
-                except Exception as e:
-                    logger.warning(f"Error processing transaction for daily report: {e}")
-                    continue
-
             # 如果有用戶記錄，顯示詳細資訊
-            if user_totals:
-                for user, amount in sorted(user_totals.items()):
+            if user_details:
+                for user, amount in sorted(user_details.items()):
                     if amount > 0:
                         report += f"\n{user} <code>NT${amount:,.0f}</code>"
+                logger.info(f"Generated report with {len(user_details)} users")
             else:
                 report += "\n\n📝 今日暫無記錄"
+                logger.warning("No user details found in transactions")
 
             keyboard = self.keyboards.get_payout_report_keyboard()
             await query.edit_message_text(
