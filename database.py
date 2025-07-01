@@ -195,7 +195,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
 
                 if month and year:
-                    await cursor.execute("""
+                    cursor.execute("""
                     SELECT t.*, u.username, u.display_name, u.first_name 
                     FROM transactions t
                     LEFT JOIN users u ON t.user_id = u.user_id
@@ -205,7 +205,7 @@ class DatabaseManager:
                 else:
                     current_month = datetime.now().month
                     current_year = datetime.now().year
-                    await cursor.execute("""
+                    cursor.execute("""
                     SELECT t.*, u.username, u.display_name, u.first_name 
                     FROM transactions t
                     LEFT JOIN users u ON t.user_id = u.user_id
@@ -213,8 +213,7 @@ class DatabaseManager:
                     ORDER BY t.date DESC, t.created_at DESC
                     """, (group_id, str(current_year), f"{current_month:02d}"))
 
-                rows = await cursor.fetchall()
-                conn.close()
+                rows = cursor.fetchall()
 
                 return [dict(row) for row in rows]
 
@@ -228,7 +227,7 @@ class DatabaseManager:
             async with self.get_connection() as conn:
                 cursor = conn.cursor()
 
-                await cursor.execute("""
+                cursor.execute("""
                 SELECT t.*, u.username, u.display_name, u.first_name 
                 FROM transactions t
                 LEFT JOIN users u ON t.user_id = u.user_id
@@ -236,8 +235,7 @@ class DatabaseManager:
                 ORDER BY t.created_at DESC
                 """, (group_id, target_date))
 
-                rows = await cursor.fetchall()
-                conn.close()
+                rows = cursor.fetchall()
 
                 return [dict(row) for row in rows]
 

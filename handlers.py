@@ -44,7 +44,7 @@ class BotHandlers:
         self.parser = TransactionParser()
         self.formatter = ReportFormatter()
         self.user_states = {}
-    
+
     async def _send_message_with_menu(self, update, text: str, parse_mode='HTML'):
         """Helper function to send message with main menu button"""
         keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -64,13 +64,13 @@ class BotHandlers:
         self.validator = ValidationUtils()
         # User state tracking for multi-step operations
         self.user_states = {}
-    
+
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         try:
             user = update.effective_user
             chat = update.effective_chat
-            
+
             # Add user to database
             await self.db.add_user(
                 user_id=user.id,
@@ -79,7 +79,7 @@ class BotHandlers:
                 first_name=user.first_name,
                 last_name=user.last_name
             )
-            
+
             # Welcome message
             welcome_text = f"""🎉 <b>歡迎使用北金管家 North™Sea ᴍ8ᴘ</b>
 
@@ -108,24 +108,24 @@ class BotHandlers:
 ⚙️ <b>快速開始:</b>
 點擊下方按鈕或輸入 /help 查看完整指令
 """
-            
+
             # Send welcome with inline keyboard
             await update.message.reply_text(
                 welcome_text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_main_inline_keyboard()
             )
-            
+
             # Set custom keyboard for all chats
             await update.message.reply_text(
                 "🎯 快速操作鍵盤已啟用",
                 reply_markup=self.keyboards.get_currency_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error in start command: {e}")
             await update.message.reply_text("❌ 啟動失敗，請稍後再試")
-    
+
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         help_text = """📖 <b>北金管家機器人指令說明</b>
@@ -186,17 +186,17 @@ class BotHandlers:
 • 日期格式支援: MM/DD, YYYY-MM-DD
 • 金額支援小數點，但建議使用整數
 """
-        
+
         await update.message.reply_text(
             help_text,
             parse_mode='HTML',
             reply_markup=self.keyboards.get_main_inline_keyboard()
         )
-    
+
     async def restart_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /restart command (admin only)"""
         user_id = update.effective_user.id
-        
+
         # If no admin IDs configured, allow group admins or creator
         admin_ids = config.get_admin_ids()
         if len(admin_ids) > 0 and user_id not in admin_ids:
@@ -222,25 +222,25 @@ class BotHandlers:
                         reply_markup=keyboard
                     )
                     return
-        
+
         try:
             await update.message.reply_text("🔄 系統刷新中...")
-            
+
             # Perform system refresh only (no actual restart)
             import asyncio
             await asyncio.sleep(1)
-            
+
             try:
                 # Refresh database connection
                 if hasattr(self.db, 'init_database'):
                     self.db.init_database()
-                    
+
                 # Clear any cached user data
                 if hasattr(context, 'user_data'):
                     context.user_data.clear()
                 if hasattr(context, 'chat_data'):
                     context.chat_data.clear()
-                
+
                 # Send completion message
                 await update.message.reply_text(
                     "✅ <b>系統刷新完成</b>\n\n"
@@ -249,15 +249,15 @@ class BotHandlers:
                     parse_mode='HTML'
                 )
                 logger.info("Bot system refresh completed")
-                
+
             except Exception as e:
                 logger.error(f"Failed to complete refresh process: {e}")
                 await update.message.reply_text("❌ 系統刷新失敗")
-            
+
         except Exception as e:
             logger.error(f"Error in restart command: {e}")
             await update.message.reply_text("❌ 重啟失敗")
-    
+
     async def handle_transaction_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle transaction recording messages"""
         try:
@@ -291,22 +291,22 @@ class BotHandlers:
                 if text == "/restart@NorthSea88_Bot":
                     await self.restart_command(update, context)
                     return
-                
+
                 # Check for keyboard button commands
                 if text in ["📝選單", "📊出款報表"]:
                     await self._handle_keyboard_buttons(update, context, text)
                     return
-                
+
                 # Check if it's a fund management command
                 fund_data = self.parser.parse_fund_command(text)
                 if fund_data:
                     await self._handle_fund_command(update, context, fund_data)
                     return
-                
+
                 # Check for other commands
                 await self._handle_other_commands(update, context, text)
                 return
-            
+
             # Add user to database if not exists
             await self.db.add_user(
                 user_id=user.id,
@@ -315,18 +315,18 @@ class BotHandlers:
                 first_name=user.first_name,
                 last_name=user.last_name
             )
-            
+
             # Auto-detect and save group name if it's a group chat
             if chat.type in ['group', 'supergroup'] and chat.title:
                 await self.db.add_or_update_group(chat.id, chat.title)
-            
+
             # Handle mentioned user
             target_user_id = user.id
             if transaction_data['mentioned_user']:
                 # TODO: Implement user lookup by username
                 # For now, use the current user
                 target_user_id = user.id
-            
+
             # Add transaction
             success = await self.db.add_transaction(
                 user_id=target_user_id,
@@ -337,33 +337,33 @@ class BotHandlers:
                 transaction_type=transaction_data['transaction_type'],
                 created_by=user.id
             )
-            
+
             if success:
                 currency_symbol = "💰" if transaction_data['currency'] == 'TW' else "💴"
                 type_symbol = "+" if transaction_data['transaction_type'] == 'income' else "-"
                 date_str = transaction_data['date'].strftime('%m/%d')
-                
+
                 success_msg = f"""✅ <b>記帳成功</b>
 
 {currency_symbol} <b>{transaction_data['currency']}{type_symbol}{transaction_data['amount']:,.0f}</b>
 📅 日期: {date_str}
 👤 用戶: {user.first_name}
 """
-                
+
                 await update.message.reply_text(success_msg, parse_mode='HTML')
             else:
                 await update.message.reply_text("❌ 記帳失敗，請稍後再試")
-                
+
         except Exception as e:
             logger.error(f"Error handling transaction: {e}")
             await update.message.reply_text("❌ 處理交易時發生錯誤")
-    
+
     async def _handle_keyboard_buttons(self, update: Update, context: ContextTypes.DEFAULT_TYPE, button_text: str):
         """Handle custom keyboard button presses"""
         try:
             user = update.effective_user
             chat = update.effective_chat
-            
+
             if button_text == "📝選單":
                 main_text = """🏠 <b>北金管家主選單</b>
 
@@ -381,7 +381,7 @@ class BotHandlers:
                     parse_mode='HTML',
                     reply_markup=self.keyboards.get_main_inline_keyboard()
                 )
-            
+
             elif button_text == "📊出款報表":
                 payout_text = """📊 <b>出款報表</b>
 
@@ -395,27 +395,27 @@ class BotHandlers:
                     parse_mode='HTML',
                     reply_markup=self.keyboards.get_payout_report_keyboard()
                 )
-                
+
         except Exception as e:
             logger.error(f"Error handling keyboard button: {e}")
             await update.message.reply_text("❌ 按鈕操作失敗")
-    
+
     async def _handle_fund_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, fund_data: Dict):
         """Handle fund management commands"""
         try:
             user = update.effective_user
             chat = update.effective_chat
-            
+
             # Get current fund balance
             current_balance = await self.db.get_fund_balance(fund_data['fund_type'], chat.id)
-            
+
             # Calculate new balance
             current_amount = current_balance.get('TW', 0)  # Default to TWD
             if fund_data['operation'] == 'income':
                 new_amount = current_amount + fund_data['amount']
             else:
                 new_amount = current_amount - fund_data['amount']
-            
+
             # Update fund
             success = await self.db.update_fund(
                 fund_type=fund_data['fund_type'],
@@ -424,11 +424,11 @@ class BotHandlers:
                 group_id=chat.id,
                 updated_by=user.id
             )
-            
+
             if success:
                 fund_name = "公桶" if fund_data['fund_type'] == 'public' else "私人"
                 operation_text = "增加" if fund_data['operation'] == 'income' else "減少"
-                
+
                 msg = f"""✅ <b>{fund_name}資金{operation_text}成功</b>
 
 💰 {operation_text}金額: {fund_data['amount']:,.0f}
@@ -438,51 +438,51 @@ class BotHandlers:
                 await update.message.reply_text(msg, parse_mode='HTML')
             else:
                 await update.message.reply_text("❌ 資金操作失敗")
-                
+
         except Exception as e:
             logger.error(f"Error handling fund command: {e}")
             await update.message.reply_text("❌ 資金操作錯誤")
-    
+
     async def _handle_other_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
         """Handle other text commands"""
         try:
             text = text.strip()
-            
+
             # Exchange rate setting - enhanced detection
             if ('設定' in text and '匯率' in text) or text.startswith('匯率設定') or any(text.startswith(curr) for curr in ['TWD', 'CNY']):
                 await self._handle_exchange_rate_setting(update, context, text)
                 return
-            
+
             # Delete commands
             if text.startswith('刪除'):
                 await self._handle_delete_commands(update, context, text)
                 return
-            
+
             # User settings
             if text.startswith('使用者設定'):
                 await self._handle_user_settings(update, context, text)
                 return
-            
+
             # Welcome message setting
             if text.startswith('歡迎詞設定'):
                 await self._handle_welcome_setting(update, context, text)
                 return
-            
+
             # List formatting
             if text == '列表':
                 await self._handle_list_formatting(update, context)
                 return
-            
+
             # Fleet report
             if text == '車隊報表':
                 await self._handle_fleet_report(update, context)
                 return
-            
+
             # Initialize report
             if text == '初始化報表':
                 await self._handle_initialize_report(update, context)
                 return
-            
+
             # Check if user is in a state waiting for clear report input
             user_id = update.effective_user.id if update.effective_user else None
             if user_id and user_id in self.user_states:
@@ -493,16 +493,16 @@ class BotHandlers:
                 elif user_state.get('step') == 'waiting_confirmation':
                     await self._process_clear_report_confirmation(update, context, user_state, text)
                     return
-                
+
         except Exception as e:
             logger.error(f"Error handling other commands: {e}")
-    
+
     async def _process_clear_report_date(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_state: dict, date_input: str):
         """Process date input for clear report operations"""
         try:
             user_id = update.effective_user.id
             action = user_state.get('action')
-            
+
             # Validate date format
             import re
             date_pattern = r'^(\d{1,2})$|^(\d{1,2}/\d{1,2})$'
@@ -515,26 +515,26 @@ class BotHandlers:
                     parse_mode='HTML'
                 )
                 return
-            
+
             # Parse date
             date_str = date_input.strip()
-            
+
             # Update user state for confirmation
             self.user_states[user_id] = {
                 'action': action,
                 'step': 'waiting_confirmation',
                 'date': date_str
             }
-            
+
             # Generate confirmation message based on action
             action_names = {
                 'clear_personal': '個人報表',
                 'clear_group': '組別報表', 
                 'clear_fleet': '車隊總表'
             }
-            
+
             action_name = action_names.get(action, '報表')
-            
+
             # Create confirmation message
             text = f"""⚠️ <b>確認清空 {action_name}</b>
 
@@ -543,32 +543,32 @@ class BotHandlers:
 ⚠️ <b>此操作不可復原！</b>
 
 請輸入 <code>確認</code> 來執行刪除，或輸入其他任何內容取消操作。"""
-            
+
             await update.message.reply_text(text, parse_mode='HTML')
-            
+
         except Exception as e:
             logger.error(f"Error processing clear report date: {e}")
             # Clear user state on error
             if user_id in self.user_states:
                 del self.user_states[user_id]
             await update.message.reply_text("❌ 處理日期輸入時發生錯誤")
-    
+
     async def _process_clear_report_confirmation(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_state: dict, confirmation_input: str):
         """Process confirmation input for clear report operations"""
         try:
             user_id = update.effective_user.id
             action = user_state.get('action')
             date_str = user_state.get('date')
-            
+
             # Clear user state
             if user_id in self.user_states:
                 del self.user_states[user_id]
-            
+
             # Check if user confirmed
             if confirmation_input.strip() == '確認':
                 # Execute the clear operation
                 success = await self._execute_clear_report(user_id, action, date_str)
-                
+
                 if success:
                     action_names = {
                         'clear_personal': '個人報表',
@@ -576,7 +576,7 @@ class BotHandlers:
                         'clear_fleet': '車隊總表'
                     }
                     action_name = action_names.get(action, '報表')
-                    
+
                     await update.message.reply_text(
                         f"✅ <b>清空完成</b>\n\n"
                         f"已成功清空 <code>{date_str}</code> 的{action_name}",
@@ -587,28 +587,28 @@ class BotHandlers:
             else:
                 # User cancelled
                 await update.message.reply_text("🔙 已取消清空操作")
-                
+
         except Exception as e:
             logger.error(f"Error processing clear report confirmation: {e}")
             # Clear user state on error
             if user_id in self.user_states:
                 del self.user_states[user_id]
             await update.message.reply_text("❌ 處理確認輸入時發生錯誤")
-    
+
     async def _execute_clear_report(self, user_id: int, action: str, date_str: str) -> bool:
         """Execute the actual clear report operation"""
         try:
             # Parse date string to get month and day
             import re
             from datetime import datetime
-            
+
             current_year = datetime.now().year
-            
+
             if '/' in date_str:
                 # Format: MM/DD
                 month, day = map(int, date_str.split('/'))
                 target_date = datetime(current_year, month, day).date()
-                
+
                 # Delete transactions for specific date
                 if action == 'clear_personal':
                     return await self.db.delete_transaction(user_id, target_date, None, None)
@@ -621,7 +621,7 @@ class BotHandlers:
             else:
                 # Format: MM (monthly clear)
                 month = int(date_str)
-                
+
                 # Delete transactions for entire month
                 if action == 'clear_personal':
                     return await self.db.delete_monthly_transactions(user_id, month, current_year)
@@ -631,22 +631,22 @@ class BotHandlers:
                 elif action == 'clear_fleet':
                     # Delete all transactions for month - implementation needed
                     return True  # Placeholder
-                    
+
             return False
-            
+
         except Exception as e:
             logger.error(f"Error executing clear report: {e}")
             return False
-    
+
     async def _handle_exchange_rate_setting(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
         """Handle exchange rate setting commands"""
         try:
             import re
             from datetime import datetime, date
-            
+
             user = update.effective_user
             user_id = user.id
-            
+
             # Pattern 1: 設定匯率33.00 (current date, TWD)
             match1 = re.match(r'設定匯率(\d+\.?\d*)', text)
             if match1:
@@ -663,7 +663,7 @@ class BotHandlers:
                 else:
                     await update.message.reply_text("❌ 匯率設定失敗")
                 return
-            
+
             # Pattern 2: 設定6/1匯率33.00 (specific date, TWD)
             match2 = re.match(r'設定(\d{1,2}/\d{1,2})匯率(\d+\.?\d*)', text)
             if match2:
@@ -672,7 +672,7 @@ class BotHandlers:
                 month, day = map(int, date_str.split('/'))
                 current_year = date.today().year
                 rate_date = date(current_year, month, day)
-                
+
                 success = await self.db.set_exchange_rate(rate_date, rate, user_id, 'TW')
                 if success:
                     await update.message.reply_text(
@@ -684,7 +684,7 @@ class BotHandlers:
                 else:
                     await update.message.reply_text("❌ 匯率設定失敗")
                 return
-            
+
             # Pattern 3: 設定CN匯率7.5 (current date, CNY)
             match3 = re.match(r'設定CN匯率(\d+\.?\d*)', text)
             if match3:
@@ -701,7 +701,7 @@ class BotHandlers:
                 else:
                     await update.message.reply_text("❌ 匯率設定失敗")
                 return
-            
+
             # Pattern 4: 設定6/1CN匯率7.0 (specific date, CNY)
             match4 = re.match(r'設定(\d{1,2}/\d{1,2})CN匯率(\d+\.?\d*)', text)
             if match4:
@@ -710,7 +710,7 @@ class BotHandlers:
                 month, day = map(int, date_str.split('/'))
                 current_year = date.today().year
                 rate_date = date(current_year, month, day)
-                
+
                 success = await self.db.set_exchange_rate(rate_date, rate, user_id, 'CN')
                 if success:
                     await update.message.reply_text(
@@ -722,7 +722,7 @@ class BotHandlers:
                 else:
                     await update.message.reply_text("❌ 匯率設定失敗")
                 return
-            
+
             # If no pattern matches, show help
             await update.message.reply_text(
                 "❌ 匯率設定格式不正確\n\n"
@@ -736,17 +736,17 @@ class BotHandlers:
         except Exception as e:
             logger.error(f"Error handling exchange rate setting: {e}")
             await update.message.reply_text("❌ 匯率設定失敗")
-    
+
     async def callback_query_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline keyboard button callbacks"""
         try:
             query = update.callback_query
             await query.answer()
-            
+
             data = query.data
             user = update.effective_user
             chat = update.effective_chat
-            
+
             if data == "personal_report":
                 await self._show_personal_report(query, user)
             elif data == "group_report":
@@ -818,31 +818,31 @@ class BotHandlers:
                     text="❌ 未知的操作",
                     reply_markup=keyboard
                 )
-                
+
         except Exception as e:
             logger.error(f"Error handling callback: {e}")
             try:
-                keyboard = BotKeyboards.get_main_inline_keyboard()
+                keyboard = BotKeyboards.get_inline_keyboard()
                 await query.edit_message_text(
                     text="❌ 操作失敗",
                     reply_markup=keyboard
                 )
             except:
                 pass
-    
+
     async def _show_personal_report(self, query, user):
         """Show personal financial report for current group"""
         try:
             # Get group ID from the callback query
             chat = query.message.chat
             group_id = chat.id if chat.type in ['group', 'supergroup'] else None
-            
+
             # Get current month transactions for this group only
             transactions = await self.db.get_user_transactions(user.id, group_id)
-            
+
             # Add group context to report title
             group_name = chat.title if group_id else "個人"
-            
+
             # Format report using personal report formatter
             from utils import PersonalReportFormatter
             personal_formatter = PersonalReportFormatter()
@@ -851,14 +851,14 @@ class BotHandlers:
                 user.first_name or user.username or f"User{user.id}",
                 group_name
             )
-            
+
             keyboard = BotKeyboards.get_personal_report_keyboard()
             await query.edit_message_text(
                 report,
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing personal report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -866,7 +866,7 @@ class BotHandlers:
                 text="❌ 獲取個人報表失敗",
                 reply_markup=keyboard
             )
-    
+
     async def _show_group_report(self, query, chat):
         """Show group financial report"""
         try:
@@ -877,36 +877,36 @@ class BotHandlers:
                     reply_markup=keyboard
                 )
                 return
-            
+
             # Get current month group transactions
             transactions = await self.db.get_group_transactions(chat.id)
-            
+
             # Import the updated formatting function
             from new_report_format import format_new_group_report
-            
+
             # Format report using updated function with daily exchange rates
             report = await format_new_group_report(
                 transactions,
                 chat.title or "群組",
                 self.db
             )
-            
+
             keyboard = BotKeyboards.get_group_report_keyboard()
-            
+
             # Debug: Log the actual report content being sent
             logger.info(f"Original report HTML: {repr(report[:200])}")
-            
+
             # Check if HTML tags are being corrupted before sending
             import re
             html_tags = re.findall(r'<[^>]+>', report[:500])
             logger.info(f"HTML tags found: {html_tags[:5]}")
-            
+
             await query.edit_message_text(
                 report,
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing group report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -914,33 +914,33 @@ class BotHandlers:
                 text="❌ 獲取群組報表失敗",
                 reply_markup=keyboard
             )
-    
+
     async def _show_history_options(self, query):
         """Show history report options"""
         try:
             text = "📚 <b>歷史報表查詢</b>\n\n請選擇要查詢的月份："
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_month_selection_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing history options: {e}")
             await query.edit_message_text("❌ 顯示歷史選項失敗")
-    
+
     async def _show_exchange_rate_info(self, query):
         """Show current exchange rate information"""
         try:
             from datetime import date
-            
+
             current_rate = await self.db.get_exchange_rate()
             cn_rate = current_rate if current_rate else config.DEFAULT_EXCHANGE_RATE
-            
+
             # Default rates (these could be fetched from external API in production)
             tw_rate = 1.0  # TWD to USD base rate
-            
+
             rate_text = f"""💱 <b>當前匯率資訊</b>
 
 台幣匯率: <code>1 USD = {tw_rate:.2f} TWD</code>
@@ -957,17 +957,17 @@ class BotHandlers:
 • <code>CN匯率4.35</code> - 設置人民幣匯率
 • <code>6/1CN匯率4.40</code> - 設置6月1日人民幣匯率
 """
-            
+
             await query.edit_message_text(
                 rate_text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_main_inline_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing exchange rate: {e}")
             await query.edit_message_text("❌ 獲取匯率資訊失敗")
-    
+
     async def _show_settings_menu(self, query):
         """Show settings menu"""
         try:
@@ -980,17 +980,17 @@ class BotHandlers:
 👋 <b>歡迎詞設定</b> - 設定群組歡迎訊息
 🗑️ <b>清空報表</b> - 清除歷史數據
 """
-            
+
             await query.edit_message_text(
                 settings_text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_settings_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing settings menu: {e}")
             await query.edit_message_text("❌ 顯示設置選單失敗")
-    
+
     async def _show_main_menu(self, query):
         """Show main menu"""
         try:
@@ -1005,13 +1005,13 @@ class BotHandlers:
 💱 <b>匯率管理</b> - 設置和查看匯率
 ⚙️ <b>系統設置</b> - 個人化設定選項
 """
-            
+
             await query.edit_message_text(
                 main_text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_main_inline_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing main menu: {e}")
             await query.edit_message_text("❌ 顯示主選單失敗")
@@ -1021,22 +1021,22 @@ class BotHandlers:
         try:
             from datetime import datetime
             from fleet_report_formatter import FleetReportFormatter
-            
+
             now = datetime.now()
             year = now.year
             month = now.month
-            
+
             # Use comprehensive fleet report formatter
             fleet_formatter = FleetReportFormatter(self.db)
             report = await fleet_formatter.format_comprehensive_fleet_report(month, year)
-            
+
             keyboard = BotKeyboards.get_fleet_report_keyboard()
             await query.edit_message_text(
                 report,
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing fleet report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -1051,7 +1051,7 @@ class BotHandlers:
             chat = query.message.chat
             now = datetime.now()
             year = now.year
-            
+
             # Get user transactions for the specified month
             transactions = await self.db.get_user_transactions(
                 user_id=user.id,
@@ -1059,11 +1059,11 @@ class BotHandlers:
                 month=month,
                 year=year
             )
-            
+
             # Format the report
             user_name = user.first_name or user.username or "用戶"
             chat_name = chat.title if hasattr(chat, 'title') and chat.title else "群組"
-            
+
             # Format report using personal report formatter
             from utils import PersonalReportFormatter
             personal_formatter = PersonalReportFormatter()
@@ -1072,14 +1072,14 @@ class BotHandlers:
                 user_name,
                 chat_name
             )
-            
+
             keyboard = BotKeyboards.get_personal_report_keyboard()
             await query.edit_message_text(
                 text=report,
                 reply_markup=keyboard,
                 parse_mode='HTML'
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing monthly report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -1092,13 +1092,13 @@ class BotHandlers:
         """Show money actions menu"""
         try:
             text = "💰 <b>金額異動選單</b>\n\n請選擇操作類型："
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_money_actions_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing money actions: {e}")
             await query.edit_message_text("❌ 顯示金額異動選單失敗")
@@ -1107,13 +1107,13 @@ class BotHandlers:
         """Show report display menu"""
         try:
             text = "📊 <b>報表顯示選單</b>\n\n請選擇要查看的報表類型："
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_report_display_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing report display: {e}")
             await query.edit_message_text("❌ 顯示報表選單失敗")
@@ -1124,13 +1124,13 @@ class BotHandlers:
             text = """🔣 <b>指令說明選單</b>
 
 請選擇您的身份以查看相應的指令說明："""
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_command_help_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing command help: {e}")
             await query.edit_message_text("❌ 顯示指令說明失敗")
@@ -1147,13 +1147,13 @@ class BotHandlers:
 • 🚯清空個人報表 - 清空您的個人交易記錄
 • 🚯清空組別報表 - 清空當前群組記錄（需管理員權限）
 • 🚯清空車隊總表 - 清空所有群組記錄（需群主權限）"""
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_clear_reports_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing clear reports menu: {e}")
             await query.edit_message_text("❌ 顯示清空報表選單失敗")
@@ -1163,7 +1163,7 @@ class BotHandlers:
         try:
             user = query.from_user
             user_id = user.id
-            
+
             # Check if user has admin or owner permissions
             # For now, implement basic permission system - this can be enhanced later
             text = """👤 <b>使用者設定</b>
@@ -1173,13 +1173,13 @@ class BotHandlers:
 • 👤群主 - 最高權限，可執行所有操作
 • 👤管理員 - 可管理組別報表和使用者
 • 👤操作員 - 可記帳和查看個人報表"""
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_user_settings_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing user settings: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回設置選單", callback_data="settings_menu")]]
@@ -1193,7 +1193,7 @@ class BotHandlers:
         try:
             user = query.from_user
             chat = query.message.chat
-            
+
             if data == "clear_personal":
                 # Set user state for clearing personal reports
                 user_id = user.id
@@ -1201,7 +1201,7 @@ class BotHandlers:
                     'action': 'clear_personal',
                     'step': 'waiting_date'
                 }
-                
+
                 text = """🚯 <b>清空個人報表</b>
 
 請直接輸入要清空的月份或日期：
@@ -1211,14 +1211,14 @@ class BotHandlers:
 • <code>6/12</code> - 清空6/12報表
 
 ⚠️ 此操作將刪除該月份或當日的所有記錄，無法復原！"""
-                
+
                 keyboard = [[InlineKeyboardButton("🔙返回清空報表", callback_data="clear_reports")]]
                 await query.edit_message_text(
                     text,
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                
+
             elif data == "clear_group":
                 # Set user state for clearing group reports
                 user_id = user.id
@@ -1226,7 +1226,7 @@ class BotHandlers:
                     'action': 'clear_group',
                     'step': 'waiting_date'
                 }
-                
+
                 text = """🚯 <b>清空組別報表</b>
 
 請直接輸入要清空的月份或日期：
@@ -1236,14 +1236,14 @@ class BotHandlers:
 • <code>6/12</code> - 清空6/12報表
 
 ⚠️ 此操作將刪除該月份或當日的所有群組記錄，無法復原！"""
-                
+
                 keyboard = [[InlineKeyboardButton("🔙返回清空報表", callback_data="clear_reports")]]
                 await query.edit_message_text(
                     text,
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                
+
             elif data == "clear_fleet":
                 # Set user state for clearing fleet reports
                 user_id = user.id
@@ -1251,7 +1251,7 @@ class BotHandlers:
                     'action': 'clear_fleet',
                     'step': 'waiting_date'
                 }
-                
+
                 text = """🚯 <b>清空車隊總表</b>
 
 請直接輸入要清空的月份或日期：
@@ -1261,14 +1261,14 @@ class BotHandlers:
 • <code>6/12</code> - 清空6/12報表
 
 ⚠️ 此操作將刪除該月份或當日的所有車隊記錄，無法復原！"""
-                
+
                 keyboard = [[InlineKeyboardButton("🔙返回清空報表", callback_data="clear_reports")]]
                 await query.edit_message_text(
                     text,
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                
+
         except Exception as e:
             logger.error(f"Error handling clear report: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回清空報表", callback_data="clear_reports")]]
@@ -1291,7 +1291,7 @@ class BotHandlers:
 🔸 <b>系統管理</b>
 • 設定匯率、歡迎詞等系統參數
 • 管理群組設定和權限分配""",
-                
+
                 "help_admin": """2️⃣ <b>管理員指令</b>
 
 🔸 <b>報表管理</b>
@@ -1301,7 +1301,7 @@ class BotHandlers:
 🔸 <b>用戶管理</b>
 • 👤使用者設定 - 管理操作員權限
 • 💱匯率設定 - 設定交易匯率""",
-                
+
                 "help_operator": """3️⃣ <b>操作員指令</b>
 
 🔸 <b>報表指令</b>
@@ -1313,18 +1313,18 @@ class BotHandlers:
 
 🔸 <b>列表指令</b>
 • 列表 - 回覆訊息文本並輸入列表可格式化當前的文本內容""",
-                
+
 
             }
-            
+
             text = help_texts.get(data, "❌ 未知的幫助類型")
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_command_help_keyboard()
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing help content: {e}")
             await query.edit_message_text("❌ 顯示幫助內容失敗")
@@ -1337,9 +1337,9 @@ class BotHandlers:
                 "role_admin": "管理員", 
                 "role_operator": "操作員"
             }
-            
+
             role_type = role_map.get(data, "未知")
-            
+
             text = f"""👤 <b>{role_type}管理</b>
 
 請選擇操作：
@@ -1347,13 +1347,13 @@ class BotHandlers:
 • 顯示目前{role_type} - 查看當前{role_type}列表
 • 添加{role_type} - 新增{role_type}權限
 • 取消{role_type} - 移除{role_type}權限"""
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=self.keyboards.get_role_management_keyboard(role_type)
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing role management: {e}")
             await query.edit_message_text("❌ 顯示角色管理失敗")
@@ -1375,13 +1375,13 @@ class BotHandlers:
 <code>MM/DD +NN</code> <code>MM/DD -NN</code>"""
 
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing TW help: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
@@ -1407,13 +1407,13 @@ class BotHandlers:
 <code>MM/DD +NN</code> <code>MM/DD -NN</code>"""
 
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing CN help: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
@@ -1433,13 +1433,13 @@ class BotHandlers:
 <code>公桶+NN</code> <code>公桶-NN</code>"""
 
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing public fund help: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
@@ -1459,13 +1459,13 @@ class BotHandlers:
 <code>私人+NN</code> <code>私人-NN</code>"""
 
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
-            
+
             await query.edit_message_text(
                 text,
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing private fund help: {e}")
             keyboard = [[InlineKeyboardButton("🔙返回金額異動", callback_data="money_actions")]]
@@ -1489,11 +1489,11 @@ class BotHandlers:
                     "• 公司: ABC公司"
                 )
                 return
-            
+
             # Extract text content from the replied message
             replied_message = update.message.reply_to_message
             original_text = None
-            
+
             # Check if the message has text content
             if replied_message.text:
                 original_text = replied_message.text
@@ -1510,7 +1510,7 @@ class BotHandlers:
                     "• 附有文字說明的文件"
                 )
                 return
-            
+
             # Validate format
             if not self.list_formatter.validate_format(original_text):
                 await update.message.reply_text(
@@ -1518,18 +1518,18 @@ class BotHandlers:
                     "需要包含: 客戶姓名、金額、時間、地址、公司等資訊"
                 )
                 return
-            
+
             # Format the list
             result = self.list_formatter.format_list(original_text)
             if not result:
                 await update.message.reply_text("❌ 處理列表時發生錯誤")
                 return
-            
+
             # Send formatted result
             await update.message.reply_text(result['formatted_text'])
-            
+
             logger.info(f"用戶 {update.effective_user.username or update.effective_user.id} 格式化了一條列表")
-            
+
         except Exception as e:
             logger.error(f"處理列表格式化時出錯: {str(e)}")
             await update.message.reply_text("❌ 處理訊息時發生錯誤")
@@ -1539,15 +1539,15 @@ class BotHandlers:
         try:
             user = update.effective_user
             text = text.strip()
-            
+
             # Parse delete command patterns
             import re
             from datetime import datetime, date
-            
+
             # Pattern for deleting specific date and amount: 刪除"MM/DD"TW100
             date_amount_pattern = r'刪除["\'""]?(\d{1,2}/\d{1,2})["\'""]?(TW|CN)(\d+(?:\.\d+)?)'
             match = re.search(date_amount_pattern, text)
-            
+
             if match:
                 date_str, currency, amount_str = match.groups()
                 try:
@@ -1555,10 +1555,10 @@ class BotHandlers:
                     month, day = map(int, date_str.split('/'))
                     current_year = datetime.now().year
                     target_date = date(current_year, month, day)
-                    
+
                     # Parse amount
                     amount = float(amount_str)
-                    
+
                     # Delete specific transaction
                     success = await self.db.delete_transaction(
                         user_id=user.id,
@@ -1566,7 +1566,7 @@ class BotHandlers:
                         currency=currency,
                         amount=amount
                     )
-                    
+
                     if success:
                         currency_name = "台幣" if currency == "TW" else "人民幣"
                         msg = f"""✅ <b>刪除記錄成功</b>
@@ -1580,21 +1580,21 @@ class BotHandlers:
                     else:
                         await update.message.reply_text("❌ 找不到符合條件的記錄")
                     return
-                    
+
                 except ValueError:
                     await update.message.reply_text("❌ 日期或金額格式錯誤")
                     return
-            
+
             # Pattern for deleting monthly reports: 刪除"MM月"TW報表
             monthly_pattern = r'刪除["\'""]?(\d{1,2})月["\'""]?(TW|CN)報表'
             match = re.search(monthly_pattern, text)
-            
+
             if match:
                 month_str, currency = match.groups()
                 try:
                     month = int(month_str)
                     current_year = datetime.now().year
-                    
+
                     # Delete monthly transactions
                     success = await self.db.delete_monthly_transactions(
                         user_id=user.id,
@@ -1602,7 +1602,7 @@ class BotHandlers:
                         year=current_year,
                         currency=currency
                     )
-                    
+
                     if success:
                         currency_name = "台幣" if currency == "TW" else "人民幣"
                         msg = f"""✅ <b>刪除月份記錄成功</b>
@@ -1617,11 +1617,11 @@ class BotHandlers:
                     else:
                         await update.message.reply_text("❌ 該月份沒有找到記錄")
                     return
-                    
+
                 except ValueError:
                     await update.message.reply_text("❌ 月份格式錯誤")
                     return
-            
+
             # If no pattern matches, show help
             help_text = """❓ <b>刪除記錄指令格式</b>
 
@@ -1638,7 +1638,7 @@ class BotHandlers:
 • <code>刪除"6月"CN報表</code> - 刪除6月所有人民幣記錄
 """
             await update.message.reply_text(help_text, parse_mode='HTML')
-            
+
         except Exception as e:
             logger.error(f"Error handling delete commands: {e}")
             await update.message.reply_text("❌ 刪除指令處理錯誤")
@@ -1656,48 +1656,48 @@ class BotHandlers:
         try:
             from datetime import datetime
             import calendar
-            
+
             now = datetime.now()
             year = now.year
             month = now.month
             month_name = f"{year}年{month}月"
-            
+
             chat = update.effective_chat
             user = update.effective_user
-            
+
             # Get current month's transactions from ALL groups for fleet report
             transactions = await self.db.get_all_groups_transactions(month, year)
-            
+
             # Get exchange rates for calculations from database
             import timezone_utils
             today = timezone_utils.get_taiwan_today()
             today_rate = await self.db.get_exchange_rate(today)
             if not today_rate:
                 today_rate = 30.2  # Default rate
-            
+
             cn_rate = 7.2  # Default CNY rate
-            
+
             # Calculate totals
             tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
             cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
-            
+
             # Convert to USDT
             tw_usdt = (tw_total / today_rate)  if tw_total > 0 else 0
             cn_usdt = (cn_total / cn_rate)  if cn_total > 0 else 0
-            
+
             # Generate daily breakdown
             daily_data = {}
             for transaction in transactions:
                 date_key = transaction['transaction_date'].strftime('%m/%d')
                 day_name = ['一', '二', '三', '四', '五', '六', '日'][transaction['transaction_date'].weekday()]
                 date_display = f"{date_key}({day_name})"
-                
+
                 if date_display not in daily_data:
                     daily_data[date_display] = {'TW': 0, 'CN': 0}
-                
+
                 if transaction['transaction_type'] == 'income':
                     daily_data[date_display][transaction['currency']] += transaction['amount']
-            
+
             # Format fleet report
             report = f"""【👀 North™Sea 北金國際 - {month_name}車隊報表】
 ◉ 台幣總業績
@@ -1710,7 +1710,7 @@ class BotHandlers:
                 daily_tw_usdt = (amounts['TW'] / today_rate)  if amounts['TW'] > 0 else 0
                 daily_cn_usdt = (amounts['CN'] / cn_rate)  if amounts['CN'] > 0 else 0
                 daily_total_usdt = daily_tw_usdt + daily_cn_usdt
-                
+
                 report += f"""
 {date_display} <code>台幣{today_rate:.2f} 人民幣{cn_rate:.1f}</code>【<code>{daily_total_usdt:,.2f}</code>】
 {chat.title or '群組'} <code>NT${amounts['TW']:,.0f}  CN¥{amounts['CN']:,.0f}</code>
@@ -1718,7 +1718,7 @@ class BotHandlers:
 --- <code>CN¥{amounts['CN']:,.0f}</code> → [<code>{daily_cn_usdt:,.2f}</code>]"""
 
             await update.message.reply_text(report, parse_mode='HTML')
-            
+
         except Exception as e:
             logger.error(f"Error generating fleet report: {e}")
             await update.message.reply_text("❌ 車隊報表生成失敗")
@@ -1741,7 +1741,7 @@ class BotHandlers:
             mentioned_user = None
             lines = text.strip().split('\n')
             first_line = lines[0].strip()
-            
+
             # 檢查第一行是否以@開頭（群主代記帳格式）
             if first_line.startswith('@'):
                 mentioned_user = first_line[1:].strip()  # 移除@符號
@@ -1953,16 +1953,16 @@ class BotHandlers:
         try:
             from datetime import datetime
             import timezone_utils
-            
+
             chat = query.message.chat
             today = timezone_utils.get_taiwan_today()
-            
+
             # 獲取今日所有出款記錄
             transactions = await self.db.get_group_transactions_by_date(chat.id, today)
-            
+
             # 計算總出款
             total_payout = sum(t['amount'] for t in transactions if t['transaction_type'] == 'income')
-            
+
             # 生成當日報表
             report = f"""<b>◉ 本日總出款</b>
 <code>NT${total_payout:,}</code>
@@ -1986,7 +1986,7 @@ class BotHandlers:
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing daily payout report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -2000,27 +2000,27 @@ class BotHandlers:
         try:
             from datetime import datetime
             import timezone_utils
-            
+
             chat = query.message.chat
             now = timezone_utils.get_taiwan_now()
-            
+
             # 獲取本月所有出款記錄
             transactions = await self.db.get_group_transactions(chat.id)
-            
+
             # 計算總出款和USDT價值
             tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
             cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
-            
+
             # 取得匯率
             today = timezone_utils.get_taiwan_today()
             tw_rate = await self.db.get_exchange_rate(today) or 33.25
             cn_rate = 7.2  # 預設人民幣匯率
-            
+
             # 轉換為USDT
             tw_usdt = tw_total / tw_rate if tw_total > 0 else 0
             cn_usdt = cn_total / cn_rate if cn_total > 0 else 0
             total_usdt = tw_usdt + cn_usdt
-            
+
             # 生成月度報表
             report = f"""<b>◉ 本月總出款</b>
 <code>NT${tw_total + (cn_total * cn_rate / tw_rate):,.0f}</code> → <code>USDT${total_usdt:,.2f}</code>
@@ -2035,18 +2035,18 @@ class BotHandlers:
                     weekday_names = ['一', '二', '三', '四', '五', '六', '日']
                     weekday = weekday_names[t['transaction_date'].weekday()]
                     date_display = f"{date_key}({weekday})"
-                    
+
                     if date_display not in daily_data:
                         daily_data[date_display] = {'TW': 0, 'CN': 0}
-                    
+
                     daily_data[date_display][t['currency']] += t['amount']
 
             # 按日期排序並顯示
             sorted_dates = sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('(')[0].split('/'))))
-            
+
             tw_dates = []
             cn_dates = []
-            
+
             for date_display in sorted_dates:
                 amounts = daily_data[date_display]
                 if amounts['TW'] > 0:
@@ -2076,7 +2076,7 @@ class BotHandlers:
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing monthly payout report: {e}")
             keyboard = BotKeyboards.get_main_inline_keyboard()
@@ -2084,21 +2084,21 @@ class BotHandlers:
                 text="❌ 當月出款報表生成失敗",
                 reply_markup=keyboard
             )
-    
+
     async def _handle_clear_report_date_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE, date_input: str):
         """Handle date input for clearing reports"""
         try:
             user = update.effective_user
             user_id = user.id
-            
+
             # Check if context exists in application user data
             if (user_id not in context.application.user_data or 
                 'clear_report_context' not in context.application.user_data[user_id]):
                 await update.message.reply_text("❌ 請先選擇清空報表類型")
                 return
-            
+
             clear_type = context.application.user_data[user_id]['clear_report_context']
-            
+
             # Format confirmation message based on input type
             if '/' in date_input:
                 # MM/DD format
@@ -2108,7 +2108,7 @@ class BotHandlers:
                 # MM format
                 date_display = f"{date_input}月"
                 time_desc = f"{date_input}月的所有記錄"
-            
+
             # Determine report type
             if clear_type == "clear_personal":
                 report_type = "個人報表"
@@ -2118,7 +2118,7 @@ class BotHandlers:
                 report_type = "車隊總表"
             else:
                 report_type = "報表"
-            
+
             # Create confirmation keyboard
             keyboard = [
                 [
@@ -2126,7 +2126,7 @@ class BotHandlers:
                     InlineKeyboardButton("❌ 取消", callback_data="clear_reports")
                 ]
             ]
-            
+
             confirmation_text = f"""⚠️ <b>確認刪除操作</b>
 
 📊 報表類型: {report_type}
@@ -2143,14 +2143,14 @@ class BotHandlers:
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            
+
             # Clear the context
             del context.user_data['clear_report_context']
-            
+
         except Exception as e:
             logger.error(f"Error handling clear report date input: {e}")
             await update.message.reply_text("❌ 處理日期輸入失敗")
-    
+
     async def _show_exchange_rate_menu(self, query):
         """Show exchange rate settings menu"""
         keyboard = BotKeyboards.get_exchange_rate_keyboard()
@@ -2160,23 +2160,23 @@ class BotHandlers:
             parse_mode='HTML',
             reply_markup=keyboard
         )
-    
+
     async def _show_current_exchange_rates(self, query):
         """Show current exchange rate information"""
         try:
             # Get current exchange rates from database
             today = timezone_utils.get_taiwan_today()
-            
+
             tw_rate = await self.db.get_exchange_rate(today)
-            
+
             if tw_rate:
                 tw_rate_text = f"台幣匯率: {tw_rate:.2f}"
             else:
                 tw_rate_text = "台幣匯率: 未設定"
-            
+
             # For CN rate, use a default value since we don't store it separately yet
             cn_rate_text = "人民幣匯率: 7.20 (預設值)"
-            
+
             rate_info = f"""💱 <b>當前匯率資訊</b>
 
 📅 查詢日期: {today.strftime('%Y/%m/%d')}
@@ -2198,14 +2198,14 @@ class BotHandlers:
                 parse_mode='HTML',
                 reply_markup=keyboard
             )
-            
+
         except Exception as e:
             logger.error(f"Error showing current exchange rates: {e}")
             await query.edit_message_text(
                 text="❌ 獲取匯率資訊失敗",
                 reply_markup=BotKeyboards.get_exchange_rate_keyboard()
             )
-    
+
     async def _prompt_tw_rate_setting(self, query):
         """Prompt user to set Taiwan dollar exchange rate"""
         prompt_text = """💰 <b>設定台幣匯率</b>
@@ -2217,7 +2217,6 @@ class BotHandlers:
 
 🔹 <b>設定指定日期匯率:</b>
    <code>設定06/01匯率30.2</code>
-   <code>設定2024-06-01匯率30.2</code>
 
 ⚠️ 需要管理員權限才能設定匯率"""
 
@@ -2227,7 +2226,7 @@ class BotHandlers:
             parse_mode='HTML',
             reply_markup=keyboard
         )
-    
+
     async def _prompt_cn_rate_setting(self, query):
         """Prompt user to set Chinese yuan exchange rate"""
         prompt_text = """💴 <b>設定人民幣匯率</b>
@@ -2239,7 +2238,6 @@ class BotHandlers:
 
 🔹 <b>設定指定日期匯率:</b>
    <code>設定06/01CN匯率7.1</code>
-   <code>設定2024-06-01CN匯率7.1</code>
 
 ⚠️ 需要管理員權限才能設定匯率"""
 
@@ -2249,7 +2247,7 @@ class BotHandlers:
             parse_mode='HTML',
             reply_markup=keyboard
         )
-    
+
     async def _prompt_date_rate_setting(self, query):
         """Prompt user to set exchange rate for specific date"""
         prompt_text = """📅 <b>設定指定日期匯率</b>
@@ -2283,27 +2281,27 @@ class BotHandlers:
         """Get start command handler"""
         from telegram.ext import CommandHandler
         return CommandHandler("start", self.start_command)
-    
+
     def get_help_handler(self):
         """Get help command handler"""
         from telegram.ext import CommandHandler
         return CommandHandler("help", self.help_command)
-    
+
     def get_restart_handler(self):
         """Get restart command handler"""
         from telegram.ext import CommandHandler
         return CommandHandler("restart", self.restart_command)
-    
+
     def get_message_handler(self):
         """Get message handler"""
         from telegram.ext import MessageHandler, filters
         return MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_transaction_message)
-    
+
     def get_callback_handler(self):
         """Get callback query handler"""
         from telegram.ext import CallbackQueryHandler
         return CallbackQueryHandler(self.callback_query_handler)
-    
+
     def get_error_handler(self):
         """Get error handler"""
         async def error_handler(update, context):
