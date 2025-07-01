@@ -1781,8 +1781,8 @@ class BotHandlers:
             bank_match = re.search(bank_pattern, text)
             bank = bank_match.group(1).strip() if bank_match else "未指定"
 
-            # 解析金額
-            amount_pattern = r'金額[：:]\s*(\d+)'
+            # 解析金額（支援負數）
+            amount_pattern = r'金額[：:]\s*(-?\d+)'
             amount_match = re.search(amount_pattern, text)
 
             if not amount_match:
@@ -1862,15 +1862,18 @@ class BotHandlers:
                 else:
                     payer_name = user.first_name or user.full_name or f"User{user.id}"
 
-            # 記錄交易（預設為台幣收入）
+            # 判斷交易類型（正數為收入，負數為支出）
             today = datetime.now().date()
+            transaction_type = 'income' if record['amount'] >= 0 else 'expense'
+            abs_amount = abs(record['amount'])  # 儲存絕對值
+            
             success = await self.db.add_transaction(
                 user_id=target_user_id,
                 group_id=chat.id if chat.type in ['group', 'supergroup'] else 0,
                 transaction_date=today,
                 currency='TW',
-                amount=record['amount'],
-                transaction_type='income',
+                amount=abs_amount,
+                transaction_type=transaction_type,
                 created_by=user.id,
                 description=f"出款人: {payer_name} | 項目: {record['item']} | 銀行: {record['bank']}{' | 代記帳' if is_admin_proxy else ''}"
             )
@@ -1923,8 +1926,9 @@ class BotHandlers:
                     try:
                         cursor = conn.cursor()
                         cursor.execute("""
-                        SELECT SUM(amount) as total FROM transactions 
-                        WHERE group_id = %s AND date = %s AND transaction_type = 'income'
+                        SELECT SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END) as total 
+                        FROM transactions 
+                        WHERE group_id = %s AND date = %s
                         """, (group_id, target_date))
                         result = cursor.fetchone()
                         total = result['total'] if result and result['total'] else 0
@@ -1937,8 +1941,9 @@ class BotHandlers:
                 async with self.db.get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
-                    SELECT SUM(amount) as total FROM transactions 
-                    WHERE group_id = ? AND date = ? AND transaction_type = 'income'
+                    SELECT SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END) as total 
+                    FROM transactions 
+                    WHERE group_id = ? AND date = ?
                     """, (group_id, target_date))
                     result = cursor.fetchone()
                     total = result[0] if result and result[0] else 0
@@ -1959,8 +1964,9 @@ class BotHandlers:
                     try:
                         cursor = conn.cursor()
                         cursor.execute("""
-                        SELECT SUM(amount) as total FROM transactions 
-                        WHERE group_id = %s AND EXTRACT(YEAR FROM date) = %s AND EXTRACT(MONTH FROM date) = %s AND transaction_type = 'income'
+                        SELECT SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END) as total 
+                        FROM transactions 
+                        WHERE group_id = %s AND EXTRACT(YEAR FROM date) = %s AND EXTRACT(MONTH FROM date) = %s
                         """, (group_id, year, month))
                         result = cursor.fetchone()
                         total = result['total'] if result and result['total'] else 0
@@ -1973,8 +1979,9 @@ class BotHandlers:
                 async with self.db.get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
-                    SELECT SUM(amount) as total FROM transactions 
-                    WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? AND transaction_type = 'income'
+                    SELECT SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END) as total 
+                    FROM transactions 
+                    WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ?
                     """, (group_id, str(year), f"{month:02d}"))
                     result = cursor.fetchone()
                     total = result[0] if result and result[0] else 0
