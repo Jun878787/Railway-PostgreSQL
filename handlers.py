@@ -1728,7 +1728,7 @@ class BotHandlers:
         await update.message.reply_text("🚧 初始化報表功能開發中...")
 
     def _parse_financial_record(self, text: str) -> Optional[Dict]:
-        """解析金融記錄訊息格式"""
+        """解析金融記錄訊息格式，支援群主代記帳功能"""
         try:
             import re
             from datetime import datetime
@@ -1736,6 +1736,18 @@ class BotHandlers:
             # 首先檢查是否包含必要的項目和金額欄位
             if not ('項目' in text and '金額' in text):
                 return None
+
+            # 檢查是否為群主代記帳格式（@用戶名 在開頭）
+            mentioned_user = None
+            lines = text.strip().split('\n')
+            first_line = lines[0].strip()
+            
+            # 檢查第一行是否以@開頭（群主代記帳格式）
+            if first_line.startswith('@'):
+                mentioned_user = first_line[1:].strip()  # 移除@符號
+                # 重新組合文本，去掉第一行的@用戶名
+                text = '\n'.join(lines[1:])
+                lines = lines[1:]
 
             # 解析出款人格式：【出款人-姓名】或【出款人】（可選）
             payer_pattern = r'【([^-]+)(?:-([^】]+))?】'
@@ -1745,12 +1757,12 @@ class BotHandlers:
                 # 有出款人標記的格式
                 payer_code = payer_match.group(1).strip()
                 payer_name = payer_match.group(2).strip() if payer_match.group(2) else payer_code
+            elif mentioned_user:
+                # 群主代記帳格式，使用被@的用戶名
+                payer_code = mentioned_user
+                payer_name = f"@{mentioned_user}"
             else:
                 # 檢查是否為新格式（文字開頭為出款人代碼）
-                lines = text.strip().split('\n')
-                first_line = lines[0].strip()
-                
-                # 如果第一行只是簡短代碼且下一行是項目，則認為是新格式
                 if len(first_line) <= 10 and len(lines) > 1 and '項目' in lines[1]:
                     payer_code = first_line
                     payer_name = first_line
@@ -1795,7 +1807,8 @@ class BotHandlers:
                 'bank': bank,
                 'amount': amount,
                 'code': code,
-                'account': account
+                'account': account,
+                'mentioned_user': mentioned_user  # 新增：被@的用戶名
             }
 
         except Exception as e:
@@ -1803,7 +1816,7 @@ class BotHandlers:
             return None
 
     async def _handle_financial_record(self, update: Update, context: ContextTypes.DEFAULT_TYPE, record: Dict):
-        """處理金融記錄訊息"""
+        """處理金融記錄訊息，支援群主代記帳功能"""
         try:
             user = update.effective_user
             chat = update.effective_chat
@@ -1821,11 +1834,30 @@ class BotHandlers:
             if chat.type in ['group', 'supergroup'] and chat.title:
                 await self.db.add_or_update_group(chat.id, chat.title)
 
-            # 如果沒有指定出款人，使用發言人的名稱
+            # 檢查是否為群主代記帳
+            target_user_id = user.id  # 預設記帳到發言人
+            mentioned_user = record.get('mentioned_user')
+            is_admin_proxy = False
+
+            if mentioned_user and chat.type in ['group', 'supergroup']:
+                # 檢查發言人是否為群主或管理員
+                try:
+                    member = await context.bot.get_chat_member(chat.id, user.id)
+                    if member.status in ['administrator', 'creator']:
+                        is_admin_proxy = True
+                        # 這裡需要根據用戶名查找用戶ID，暫時使用發言人ID
+                        # 在實際應用中，您可能需要建立用戶名到ID的映射
+                        target_user_id = user.id  # 目前仍記錄到發言人，可以後續改進
+                        logger.info(f"Admin {user.first_name} is recording for user @{mentioned_user}")
+                except Exception as e:
+                    logger.warning(f"Could not check admin status: {e}")
+
+            # 確定出款人顯示名稱
             payer_name = record['payer_name']
             if payer_name == "未指定":
-                # 使用 @ 標記格式顯示發言人
-                if user.username:
+                if mentioned_user and is_admin_proxy:
+                    payer_name = f"@{mentioned_user}"
+                elif user.username:
                     payer_name = f"@{user.username}"
                 else:
                     payer_name = user.first_name or user.full_name or f"User{user.id}"
@@ -1833,14 +1865,14 @@ class BotHandlers:
             # 記錄交易（預設為台幣收入）
             today = datetime.now().date()
             success = await self.db.add_transaction(
-                user_id=user.id,
+                user_id=target_user_id,
                 group_id=chat.id if chat.type in ['group', 'supergroup'] else 0,
                 transaction_date=today,
                 currency='TW',
                 amount=record['amount'],
                 transaction_type='income',
                 created_by=user.id,
-                description=f"出款人: {payer_name} | 項目: {record['item']} | 銀行: {record['bank']}"
+                description=f"出款人: {payer_name} | 項目: {record['item']} | 銀行: {record['bank']}{' | 代記帳' if is_admin_proxy else ''}"
             )
 
             if success:
@@ -1850,10 +1882,21 @@ class BotHandlers:
                 weekday = weekdays[today.weekday()]
 
                 # 獲取今日和本月總計
-                daily_total = await self._get_daily_total(user.id, chat.id, today)
-                monthly_total = await self._get_monthly_total(user.id, chat.id, today.year, today.month)
+                daily_total = await self._get_daily_total(target_user_id, chat.id, today)
+                monthly_total = await self._get_monthly_total(target_user_id, chat.id, today.year, today.month)
 
-                response_msg = f"""已經收到您的記帳紀錄！
+                # 根據是否為代記帳調整回報訊息
+                if is_admin_proxy and mentioned_user:
+                    response_msg = f"""已經收到代記帳紀錄！
+
+{today_str} ({weekday})
+出款人：{payer_name} 金額：{record['amount']:,}
+記帳員：{user.first_name}
+
+📊 今日總計：{daily_total:,}
+📊 本月總計：{monthly_total:,}"""
+                else:
+                    response_msg = f"""已經收到您的記帳紀錄！
 
 {today_str} ({weekday})
 出款人：{payer_name} 金額：{record['amount']:,}
