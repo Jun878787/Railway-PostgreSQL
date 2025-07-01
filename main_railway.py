@@ -46,6 +46,13 @@ async def post_init(application):
 def main():
     """Main function to start the bot"""
     try:
+        # Check if we're in Railway environment
+        railway_environment = os.getenv('RAILWAY_ENVIRONMENT')
+        if not railway_environment:
+            logger.warning("⚠️  Not in Railway environment - Bot will not start to prevent conflicts")
+            logger.info("🛑 If you want to run locally, use main.py instead")
+            return
+            
         logger.info("🚀 Starting 北金管家 North™Sea ᴍ8ᴘ for Railway deployment...")
         
         # Initialize database manager - force PostgreSQL
