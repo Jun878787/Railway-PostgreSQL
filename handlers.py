@@ -343,12 +343,15 @@ class BotHandlers:
                 type_symbol = "+" if transaction_data['transaction_type'] == 'income' else "-"
                 date_str = transaction_data['date'].strftime('%m/%d')
 
-                # 確定用戶顯示名稱
-                if transaction_data.get('mentioned_user'):
+                # 確定用戶顯示名稱 - 顯示實際被記帳的用戶
+                if transaction_data.get('mentioned_user') and target_user_id != user.id:
+                    # 代記帳情況：顯示被@的用戶名稱
                     user_display = f"@{transaction_data['mentioned_user']}"
                 elif user.username:
+                    # 自己記帳：顯示自己的用戶名
                     user_display = f"@{user.username}"
                 else:
+                    # 備選方案：使用名字或用戶ID
                     user_display = user.first_name or f"User{user.id}"
 
                 success_msg = f"""✅ 記帳成功
@@ -490,12 +493,12 @@ class BotHandlers:
             if text == '初始化報表':
                 await self._handle_initialize_report(update, context)
                 return
-            
+
             # User management commands
             if text == '用戶列表' or text == '查看用戶':
                 await self._handle_user_list(update, context)
                 return
-            
+
             if text.startswith('查找用戶'):
                 await self._handle_find_user(update, context, text)
                 return
@@ -820,7 +823,8 @@ class BotHandlers:
             elif data == "history_group":
                 await self._show_history_options(query)
             elif data == "history_fleet":
-                await self._show_history_options(query)
+                await<replit_final_file>
+ self._show_history_options(query)
             elif data == "group_current":
                 await self._show_group_report(query, query.message.chat)
             elif data == "fleet_current":
@@ -1743,35 +1747,35 @@ class BotHandlers:
     async def _handle_initialize_report(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle initialize report - placeholder"""
         await update.message.reply_text("🚧 初始化報表功能開發中...")
-    
+
     async def _handle_user_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show list of all users in database"""
         try:
             users = await self.db.get_all_users()
-            
+
             if not users:
                 await update.message.reply_text("📝 資料庫中暫無用戶記錄")
                 return
-            
+
             user_list = "👥 <b>用戶列表</b>\n\n"
             for i, user in enumerate(users, 1):
                 username = user.get('username', '未設定')
                 display_name = user.get('display_name', '未設定')
                 first_name = user.get('first_name', '未設定')
                 created_date = user.get('created_at', '').split(' ')[0] if user.get('created_at') else '未知'
-                
+
                 user_list += f"{i}. <code>@{username}</code>\n"
                 user_list += f"   名稱: {first_name}\n"
                 user_list += f"   加入: {created_date}\n\n"
-            
+
             user_list += f"📊 總計: {len(users)} 位用戶"
-            
+
             await update.message.reply_text(user_list, parse_mode='HTML')
-            
+
         except Exception as e:
             logger.error(f"Error showing user list: {e}")
             await update.message.reply_text("❌ 獲取用戶列表失敗")
-    
+
     async def _handle_find_user(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
         """Find specific user by username"""
         try:
@@ -1784,10 +1788,10 @@ class BotHandlers:
                     parse_mode='HTML'
                 )
                 return
-            
+
             username = parts[1].lstrip('@')
             user = await self.db.find_user_by_username(username)
-            
+
             if user:
                 user_info = f"""👤 <b>用戶資訊</b>
 
@@ -1800,7 +1804,7 @@ class BotHandlers:
                 await update.message.reply_text(user_info, parse_mode='HTML')
             else:
                 await update.message.reply_text(f"❌ 找不到用戶: @{username}")
-                
+
         except Exception as e:
             logger.error(f"Error finding user: {e}")
             await update.message.reply_text("❌ 查找用戶失敗")
@@ -1849,7 +1853,7 @@ class BotHandlers:
                             pass
                 else:
                     mentioned_user = first_line[1:].strip()  # 移除@符號
-                
+
                 # 重新組合文本，去掉第一行的@用戶名
                 text = '\n'.join(lines[1:])
                 lines = lines[1:]
@@ -1972,7 +1976,7 @@ class BotHandlers:
             transaction_date = record.get('record_date') or datetime.now().date()
             transaction_type = 'income' if record['amount'] >= 0 else 'expense'
             abs_amount = abs(record['amount'])  # 儲存絕對值
-            
+
             success = await self.db.add_transaction(
                 user_id=target_user_id,
                 group_id=chat.id if chat.type in ['group', 'supergroup'] else 0,
@@ -2026,7 +2030,7 @@ class BotHandlers:
         """獲取指定日期的總計"""
         try:
             from decimal import Decimal
-            
+
             def safe_float(value):
                 """安全轉換為 float"""
                 if isinstance(value, Decimal):
@@ -2034,7 +2038,7 @@ class BotHandlers:
                 elif isinstance(value, (int, float)):
                     return float(value)
                 return 0.0
-            
+
             # 檢查是否使用PostgreSQL
             if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
                 # PostgreSQL (Railway)
@@ -2074,7 +2078,7 @@ class BotHandlers:
         """獲取指定月份的總計"""
         try:
             from decimal import Decimal
-            
+
             def safe_float(value):
                 """安全轉換為 float"""
                 if isinstance(value, Decimal):
@@ -2082,7 +2086,7 @@ class BotHandlers:
                 elif isinstance(value, (int, float)):
                     return float(value)
                 return 0.0
-            
+
             # 檢查是否使用PostgreSQL
             if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
                 # PostgreSQL (Railway)
@@ -2129,12 +2133,12 @@ class BotHandlers:
 
             # 獲取今日所有出款記錄
             transactions = await self.db.get_group_transactions_by_date(chat.id, today)
-            
+
             logger.info(f"Found {len(transactions)} transactions for date {today}")
 
             # 計算總出款 (正數為收入，負數為支出)
             from decimal import Decimal
-            
+
             def safe_float(value):
                 """安全轉換為 float"""
                 if isinstance(value, Decimal):
@@ -2142,43 +2146,43 @@ class BotHandlers:
                 elif isinstance(value, (int, float)):
                     return float(value)
                 return 0.0
-            
+
             total_payout = 0.0
             user_details = {}
-            
+
             for t in transactions:
                 try:
                     if t.get('transaction_type') == 'income':
                         amount = safe_float(t.get('amount', 0))
                         if amount > 0:
                             total_payout += amount
-                            
+
                             # 從 description 中提取出款人信息，如果沒有則使用用戶信息
                             description = t.get('description', '')
                             user_display = None
-                            
+
                             # 檢查描述中是否有出款人信息
                             if '出款人:' in description:
                                 import re
                                 match = re.search(r'出款人:\s*([^|]+)', description)
                                 if match:
                                     user_display = match.group(1).strip()
-                            
+
                             # 如果沒有從描述中找到，使用用戶信息
                             if not user_display:
                                 user_display = (t.get('display_name') or 
                                               t.get('first_name') or 
                                               t.get('username') or 
                                               f"User{t.get('user_id', 'Unknown')}")
-                            
+
                             # 確保用戶名以@開頭
                             if user_display and not user_display.startswith('@'):
                                 user_display = f"@{user_display}"
-                            
+
                             if user_display:
                                 user_details[user_display] = user_details.get(user_display, 0.0) + amount
                                 logger.info(f"Added {amount} for user {user_display}")
-                            
+
                 except Exception as e:
                     logger.warning(f"Error processing transaction: {e}")
                     continue
@@ -2186,12 +2190,12 @@ class BotHandlers:
             # 生成當日報表
             weekdays = ['一', '二', '三', '四', '五', '六', '日']
             weekday = weekdays[today.weekday()]
-            
+
             # 添加時間戳和隨機要素確保內容唯一性
             current_time = timezone_utils.get_taiwan_now().strftime('%H:%M:%S')
             import random
             unique_id = random.randint(100, 999)
-            
+
             report = f"""<b>◉ 本日總出款</b>
 <code>NT${total_payout:,.0f}</code>
 －－－－－－－－－－
@@ -2250,7 +2254,7 @@ class BotHandlers:
             # 計算總出款和USDT價值，確保類型統一
             tw_total = 0.0
             cn_total = 0.0
-            
+
             for t in transactions:
                 if t['currency'] == 'TW' and t['transaction_type'] == 'income':
                     tw_total += safe_float(t['amount'])
@@ -2272,7 +2276,7 @@ class BotHandlers:
             current_time = timezone_utils.get_taiwan_now().strftime('%H:%M:%S')
             import random
             unique_id = random.randint(100, 999)
-            
+
             report = f"""<b>◉ 本月總出款</b>
 <code>NT${tw_total + (cn_total * cn_rate / tw_rate):,.0f}</code> → <code>USDT${total_usdt:,.2f}</code>
 －－－－－－－－－－
@@ -2291,7 +2295,7 @@ class BotHandlers:
                             transaction_date = datetime.strptime(transaction_date, '%Y-%m-%d').date()
                         except ValueError:
                             continue
-                    
+
                     date_key = transaction_date.strftime('%m/%d')
                     weekday_names = ['一', '二', '三', '四', '五', '六', '日']
                     weekday = weekday_names[transaction_date.weekday()]

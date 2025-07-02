@@ -46,7 +46,7 @@ def fix_html_tags(text: str) -> str:
         # Fix <strong>text<strong> -> <strong>text</strong>
         (r'<strong>([^<]*)<strong>', r'<strong>\1</strong>'),
         # Fix <i>text<i> -> <i>text</i>
-        (r'<i>([^<]*)<i>', r'<i>\1</i>'),
+        (r'<i>text<i>', r'<i>\1</i>'),
     ]
     
     for pattern, replacement in missing_closing_fixes:
@@ -86,10 +86,11 @@ class TransactionParser:
             # Check for user mention
             mentioned_user = None
             if text.startswith('@'):
-                parts = text.split(' ', 1)
-                if len(parts) > 1:
+                parts = text.split(' ', 2)  # 分割成 @用戶名、日期、金額+幣別
+                if len(parts) >= 2:
                     mentioned_user = parts[0][1:]  # Remove @
-                    text = parts[1]
+                    # 重新組合剩餘的文字（日期和金額）
+                    text = ' '.join(parts[1:]) if len(parts) > 1 else ''
             
             # Parse date
             transaction_date = None
@@ -774,31 +775,4 @@ class FleetReportFormatter:
                 "📊 <b>車隊總報表</b>",
                 "－－－－－－－－－－",
                 "◉ 車隊台幣總業績",
-                f"<code>NT${fleet_totals['TW']:,.0f}</code> → <code>USDT${fleet_tw_usdt:,.2f}</code>",
-                "◉ 車隊人民幣總業績",
-                f"<code>CN¥{fleet_totals['CN']:,.0f}</code> → <code>USDT${fleet_cn_usdt:,.2f}</code>",
-                "－－－－－－－－－－"
-            ]
-            
-            # Add group breakdowns
-            for group_name, totals in group_summaries.items():
-                try:
-                    group_tw_usdt = totals['TW'] / tw_rate if totals['TW'] > 0 else 0
-                    group_cn_usdt = totals['CN'] / cn_rate if totals['CN'] > 0 else 0
-                    
-                    report_lines.append(f"📍 <b>{group_name}</b>")
-                    if totals['TW'] > 0:
-                        report_lines.append(f"台幣: <code>NT${totals['TW']:,.0f}</code> → <code>USDT${group_tw_usdt:,.2f}</code>")
-                    if totals['CN'] > 0:
-                        report_lines.append(f"人民幣: <code>CN¥{totals['CN']:,.0f}</code> → <code>USDT${group_cn_usdt:,.2f}</code>")
-                    report_lines.append("")
-                except Exception as e:
-                    logger.warning(f"Error formatting group summary: {e}")
-                    continue
-            
-            final_report = "\n".join(report_lines)
-            return fix_html_tags(final_report)
-            
-        except Exception as e:
-            logger.error(f"Error formatting fleet report: {e}")
-            return f"❌ 車隊報表格式化失敗: {str(e)}"
+                f"<code>NT${fleet_totals['TW']:,.0f}</code> → <code>USDT${fleet_tw_usdt:,.2f}</code>
