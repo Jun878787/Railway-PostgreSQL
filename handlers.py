@@ -482,6 +482,15 @@ class BotHandlers:
             if text == '初始化報表':
                 await self._handle_initialize_report(update, context)
                 return
+            
+            # User management commands
+            if text == '用戶列表' or text == '查看用戶':
+                await self._handle_user_list(update, context)
+                return
+            
+            if text.startswith('查找用戶'):
+                await self._handle_find_user(update, context, text)
+                return
 
             # Check if user is in a state waiting for clear report input
             user_id = update.effective_user.id if update.effective_user else None
@@ -1726,6 +1735,67 @@ class BotHandlers:
     async def _handle_initialize_report(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle initialize report - placeholder"""
         await update.message.reply_text("🚧 初始化報表功能開發中...")
+    
+    async def _handle_user_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show list of all users in database"""
+        try:
+            users = await self.db.get_all_users()
+            
+            if not users:
+                await update.message.reply_text("📝 資料庫中暫無用戶記錄")
+                return
+            
+            user_list = "👥 <b>用戶列表</b>\n\n"
+            for i, user in enumerate(users, 1):
+                username = user.get('username', '未設定')
+                display_name = user.get('display_name', '未設定')
+                first_name = user.get('first_name', '未設定')
+                created_date = user.get('created_at', '').split(' ')[0] if user.get('created_at') else '未知'
+                
+                user_list += f"{i}. <code>@{username}</code>\n"
+                user_list += f"   名稱: {first_name}\n"
+                user_list += f"   加入: {created_date}\n\n"
+            
+            user_list += f"📊 總計: {len(users)} 位用戶"
+            
+            await update.message.reply_text(user_list, parse_mode='HTML')
+            
+        except Exception as e:
+            logger.error(f"Error showing user list: {e}")
+            await update.message.reply_text("❌ 獲取用戶列表失敗")
+    
+    async def _handle_find_user(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
+        """Find specific user by username"""
+        try:
+            # 提取用戶名
+            parts = text.split()
+            if len(parts) < 2:
+                await update.message.reply_text(
+                    "❓ 請指定要查找的用戶名\n\n"
+                    "格式: <code>查找用戶 @M8-N3</code>",
+                    parse_mode='HTML'
+                )
+                return
+            
+            username = parts[1].lstrip('@')
+            user = await self.db.find_user_by_username(username)
+            
+            if user:
+                user_info = f"""👤 <b>用戶資訊</b>
+
+🆔 用戶ID: <code>{user['user_id']}</code>
+👤 用戶名: <code>@{user.get('username', '未設定')}</code>
+📝 顯示名: {user.get('display_name', '未設定')}
+👋 名字: {user.get('first_name', '未設定')}
+📅 加入時間: {user.get('created_at', '未知').split(' ')[0] if user.get('created_at') else '未知'}
+"""
+                await update.message.reply_text(user_info, parse_mode='HTML')
+            else:
+                await update.message.reply_text(f"❌ 找不到用戶: @{username}")
+                
+        except Exception as e:
+            logger.error(f"Error finding user: {e}")
+            await update.message.reply_text("❌ 查找用戶失敗")
 
     def _parse_financial_record(self, text: str) -> Optional[Dict]:
         """解析金融記錄訊息格式，支援群主代記帳功能"""
@@ -1845,10 +1915,16 @@ class BotHandlers:
                     member = await context.bot.get_chat_member(chat.id, user.id)
                     if member.status in ['administrator', 'creator']:
                         is_admin_proxy = True
-                        # 這裡需要根據用戶名查找用戶ID，暫時使用發言人ID
-                        # 在實際應用中，您可能需要建立用戶名到ID的映射
-                        target_user_id = user.id  # 目前仍記錄到發言人，可以後續改進
-                        logger.info(f"Admin {user.first_name} is recording for user @{mentioned_user}")
+                        
+                        # 根據用戶名查找實際用戶ID
+                        target_user = await self.db.find_user_by_username(mentioned_user)
+                        if target_user:
+                            target_user_id = target_user['user_id']
+                            logger.info(f"Admin {user.first_name} is recording for user @{mentioned_user} (ID: {target_user_id})")
+                        else:
+                            # 如果找不到用戶，仍記錄到發言人但標註為代記帳
+                            target_user_id = user.id
+                            logger.warning(f"User @{mentioned_user} not found in database, recording to admin instead")
                 except Exception as e:
                     logger.warning(f"Could not check admin status: {e}")
 
@@ -1918,6 +1994,16 @@ class BotHandlers:
     async def _get_daily_total(self, user_id: int, group_id: int, target_date: date) -> int:
         """獲取指定日期的總計"""
         try:
+            from decimal import Decimal
+            
+            def safe_float(value):
+                """安全轉換為 float"""
+                if isinstance(value, Decimal):
+                    return float(value)
+                elif isinstance(value, (int, float)):
+                    return float(value)
+                return 0.0
+            
             # 檢查是否使用PostgreSQL
             if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
                 # PostgreSQL (Railway)
@@ -1931,7 +2017,7 @@ class BotHandlers:
                         WHERE group_id = %s AND date = %s
                         """, (group_id, target_date))
                         result = cursor.fetchone()
-                        total = result['total'] if result and result['total'] else 0
+                        total = safe_float(result['total']) if result and result['total'] else 0.0
                         logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
                         return int(total)
                     finally:
@@ -1946,7 +2032,7 @@ class BotHandlers:
                     WHERE group_id = ? AND date = ?
                     """, (group_id, target_date))
                     result = cursor.fetchone()
-                    total = result[0] if result and result[0] else 0
+                    total = safe_float(result[0]) if result and result[0] else 0.0
                     logger.info(f"Daily total for group {group_id} on {target_date}: {total}")
                     return int(total)
         except Exception as e:
@@ -1956,6 +2042,16 @@ class BotHandlers:
     async def _get_monthly_total(self, user_id: int, group_id: int, year: int, month: int) -> int:
         """獲取指定月份的總計"""
         try:
+            from decimal import Decimal
+            
+            def safe_float(value):
+                """安全轉換為 float"""
+                if isinstance(value, Decimal):
+                    return float(value)
+                elif isinstance(value, (int, float)):
+                    return float(value)
+                return 0.0
+            
             # 檢查是否使用PostgreSQL
             if hasattr(self.db, 'get_connection') and hasattr(self.db, '_lock'):
                 # PostgreSQL (Railway)
@@ -1969,7 +2065,7 @@ class BotHandlers:
                         WHERE group_id = %s AND EXTRACT(YEAR FROM date) = %s AND EXTRACT(MONTH FROM date) = %s
                         """, (group_id, year, month))
                         result = cursor.fetchone()
-                        total = result['total'] if result and result['total'] else 0
+                        total = safe_float(result['total']) if result and result['total'] else 0.0
                         logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
                         return int(total)
                     finally:
@@ -1984,7 +2080,7 @@ class BotHandlers:
                     WHERE group_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ?
                     """, (group_id, str(year), f"{month:02d}"))
                     result = cursor.fetchone()
-                    total = result[0] if result and result[0] else 0
+                    total = safe_float(result[0]) if result and result[0] else 0.0
                     logger.info(f"Monthly total for group {group_id} in {year}-{month:02d}: {total}")
                     return int(total)
         except Exception as e:
@@ -2006,14 +2102,24 @@ class BotHandlers:
             logger.info(f"Found {len(transactions)} transactions for date {today}")
 
             # 計算總出款 (正數為收入，負數為支出)
-            total_payout = 0
+            from decimal import Decimal
+            
+            def safe_float(value):
+                """安全轉換為 float"""
+                if isinstance(value, Decimal):
+                    return float(value)
+                elif isinstance(value, (int, float)):
+                    return float(value)
+                return 0.0
+            
+            total_payout = 0.0
             user_details = {}
             
             for t in transactions:
                 try:
                     if t.get('transaction_type') == 'income':
-                        amount = t.get('amount', 0)
-                        if isinstance(amount, (int, float)) and amount > 0:
+                        amount = safe_float(t.get('amount', 0))
+                        if amount > 0:
                             total_payout += amount
                             
                             # 從 description 中提取出款人信息，如果沒有則使用用戶信息
@@ -2039,7 +2145,7 @@ class BotHandlers:
                                 user_display = f"@{user_display}"
                             
                             if user_display:
-                                user_details[user_display] = user_details.get(user_display, 0) + amount
+                                user_details[user_display] = user_details.get(user_display, 0.0) + amount
                                 logger.info(f"Added {amount} for user {user_display}")
                             
                 except Exception as e:
@@ -2094,6 +2200,15 @@ class BotHandlers:
         try:
             from datetime import datetime
             import timezone_utils
+            from decimal import Decimal
+
+            def safe_float(value):
+                """安全轉換為 float"""
+                if isinstance(value, Decimal):
+                    return float(value)
+                elif isinstance(value, (int, float)):
+                    return float(value)
+                return 0.0
 
             chat = query.message.chat
             now = timezone_utils.get_taiwan_now()
@@ -2101,18 +2216,25 @@ class BotHandlers:
             # 獲取本月所有出款記錄
             transactions = await self.db.get_group_transactions(chat.id)
 
-            # 計算總出款和USDT價值
-            tw_total = sum(t['amount'] for t in transactions if t['currency'] == 'TW' and t['transaction_type'] == 'income')
-            cn_total = sum(t['amount'] for t in transactions if t['currency'] == 'CN' and t['transaction_type'] == 'income')
+            # 計算總出款和USDT價值，確保類型統一
+            tw_total = 0.0
+            cn_total = 0.0
+            
+            for t in transactions:
+                if t['currency'] == 'TW' and t['transaction_type'] == 'income':
+                    tw_total += safe_float(t['amount'])
+                elif t['currency'] == 'CN' and t['transaction_type'] == 'income':
+                    cn_total += safe_float(t['amount'])
 
             # 取得匯率
             today = timezone_utils.get_taiwan_today()
-            tw_rate = await self.db.get_exchange_rate(today) or 33.25
+            tw_rate_raw = await self.db.get_exchange_rate(today)
+            tw_rate = safe_float(tw_rate_raw) if tw_rate_raw else 33.25
             cn_rate = 7.2  # 預設人民幣匯率
 
             # 轉換為USDT
-            tw_usdt = tw_total / tw_rate if tw_total > 0 else 0
-            cn_usdt = cn_total / cn_rate if cn_total > 0 else 0
+            tw_usdt = tw_total / tw_rate if tw_total > 0 else 0.0
+            cn_usdt = cn_total / cn_rate if cn_total > 0 else 0.0
             total_usdt = tw_usdt + cn_usdt
 
             # 生成月度報表
@@ -2130,15 +2252,24 @@ class BotHandlers:
             daily_data = {}
             for t in transactions:
                 if t['transaction_type'] == 'income':
-                    date_key = t['transaction_date'].strftime('%m/%d')
+                    # 處理日期字段
+                    transaction_date = t.get('transaction_date') or t.get('date')
+                    if isinstance(transaction_date, str):
+                        try:
+                            from datetime import datetime
+                            transaction_date = datetime.strptime(transaction_date, '%Y-%m-%d').date()
+                        except ValueError:
+                            continue
+                    
+                    date_key = transaction_date.strftime('%m/%d')
                     weekday_names = ['一', '二', '三', '四', '五', '六', '日']
-                    weekday = weekday_names[t['transaction_date'].weekday()]
+                    weekday = weekday_names[transaction_date.weekday()]
                     date_display = f"{date_key}({weekday})"
 
                     if date_display not in daily_data:
-                        daily_data[date_display] = {'TW': 0, 'CN': 0}
+                        daily_data[date_display] = {'TW': 0.0, 'CN': 0.0}
 
-                    daily_data[date_display][t['currency']] += t['amount']
+                    daily_data[date_display][t['currency']] += safe_float(t['amount'])
 
             # 按日期排序並顯示
             sorted_dates = sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('(')[0].split('/'))))

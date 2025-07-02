@@ -413,3 +413,34 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting group name: {e}")
             return None
+    
+    async def find_user_by_username(self, username: str) -> Optional[Dict]:
+        """Find user by username"""
+        try:
+            # 移除 @ 符號如果存在
+            username = username.lstrip('@')
+            
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                SELECT * FROM users WHERE username = ? OR display_name = ? OR first_name = ?
+                """, (username, f"@{username}", username))
+                result = cursor.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Error finding user by username: {e}")
+            return None
+    
+    async def get_all_users(self) -> List[Dict]:
+        """Get all users in database"""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                SELECT user_id, username, display_name, first_name, created_at FROM users
+                ORDER BY created_at DESC
+                """)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting all users: {e}")
+            return []
