@@ -1904,29 +1904,22 @@ class BotHandlers:
             if chat.type in ['group', 'supergroup'] and chat.title:
                 await self.db.add_or_update_group(chat.id, chat.title)
 
-            # 檢查是否為群主代記帳
-            target_user_id = user.id  # 預設記帳到發言人
+            # 根據@用戶記帳邏輯
             mentioned_user = record.get('mentioned_user')
             is_admin_proxy = False
+            target_user_id = user.id  # 預設記帳到發言人
 
-            if mentioned_user and chat.type in ['group', 'supergroup']:
-                # 檢查發言人是否為群主或管理員
-                try:
-                    member = await context.bot.get_chat_member(chat.id, user.id)
-                    if member.status in ['administrator', 'creator']:
-                        is_admin_proxy = True
-                        
-                        # 根據用戶名查找實際用戶ID
-                        target_user = await self.db.find_user_by_username(mentioned_user)
-                        if target_user:
-                            target_user_id = target_user['user_id']
-                            logger.info(f"Admin {user.first_name} is recording for user @{mentioned_user} (ID: {target_user_id})")
-                        else:
-                            # 如果找不到用戶，仍記錄到發言人但標註為代記帳
-                            target_user_id = user.id
-                            logger.warning(f"User @{mentioned_user} not found in database, recording to admin instead")
-                except Exception as e:
-                    logger.warning(f"Could not check admin status: {e}")
+            if mentioned_user:
+                # 有@用戶時，直接記帳到被@的用戶
+                target_user = await self.db.find_user_by_username(mentioned_user)
+                if target_user:
+                    target_user_id = target_user['user_id']
+                    is_admin_proxy = True
+                    logger.info(f"Recording for mentioned user @{mentioned_user} (ID: {target_user_id})")
+                else:
+                    # 如果找不到用戶，記錄到發言人並標註為找不到目標用戶
+                    target_user_id = user.id
+                    logger.warning(f"User @{mentioned_user} not found in database, recording to sender instead")
 
             # 確定出款人顯示名稱
             payer_name = record['payer_name']
@@ -1970,15 +1963,16 @@ class BotHandlers:
 
 {today_str} ({weekday})
 出款人：{payer_name} 金額：{record['amount']:,}
-記帳員：{user.first_name}
+記帳員：北金國際-M8P-Ann
 
 📊 今日總計：{daily_total:,}
 📊 本月總計：{monthly_total:,}"""
                 else:
-                    response_msg = f"""已經收到您的記帳紀錄！
+                    response_msg = f"""已經收到代記帳紀錄！
 
 {today_str} ({weekday})
 出款人：{payer_name} 金額：{record['amount']:,}
+記帳員：北金國際-M8P-Ann
 
 📊 今日總計：{daily_total:,}
 📊 本月總計：{monthly_total:,}"""

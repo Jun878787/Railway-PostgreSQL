@@ -15,31 +15,31 @@ async def add_multiple_users():
     """批量添加用戶"""
     db = DatabaseManager()
     
-    # 用戶列表
+    # 用戶列表  
     users_to_add = [
         {
             'user_id': 1001,  # 這裡需要實際的 Telegram user_id
-            'username': 'M8-N3',
-            'display_name': '@M8-N3',
-            'first_name': 'M8-N3'
+            'username': 'N3',
+            'display_name': '@N3',
+            'first_name': 'N3'
         },
         {
             'user_id': 1002,
-            'username': 'M8-NIKE', 
-            'display_name': '@M8-NIKE',
-            'first_name': 'M8-NIKE'
+            'username': 'J', 
+            'display_name': '@J',
+            'first_name': 'J'
         },
         {
             'user_id': 1003,
-            'username': 'M8-J',
-            'display_name': '@M8-J', 
-            'first_name': 'M8-J'
+            'username': 'NIKE',
+            'display_name': '@NIKE', 
+            'first_name': 'NIKE'
         },
         {
             'user_id': 1004,
-            'username': 'M8-Z8',
-            'display_name': '@M8-Z8',
-            'first_name': 'M8-Z8'
+            'username': 'Z8',
+            'display_name': '@Z8',
+            'first_name': 'Z8'
         }
     ]
     
