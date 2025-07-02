@@ -343,11 +343,19 @@ class BotHandlers:
                 type_symbol = "+" if transaction_data['transaction_type'] == 'income' else "-"
                 date_str = transaction_data['date'].strftime('%m/%d')
 
-                success_msg = f"""✅ <b>記帳成功</b>
+                # 確定用戶顯示名稱
+                if transaction_data.get('mentioned_user'):
+                    user_display = f"@{transaction_data['mentioned_user']}"
+                elif user.username:
+                    user_display = f"@{user.username}"
+                else:
+                    user_display = user.first_name or f"User{user.id}"
 
-{currency_symbol} <b>{transaction_data['currency']}{type_symbol}{transaction_data['amount']:,.0f}</b>
+                success_msg = f"""✅ 記帳成功
+
+{currency_symbol} {transaction_data['currency']}{type_symbol}{transaction_data['amount']:,.0f}
 📅 日期: {date_str}
-👤 用戶: {user.first_name}
+👤 用戶: {user_display}
 """
 
                 await update.message.reply_text(success_msg, parse_mode='HTML')
