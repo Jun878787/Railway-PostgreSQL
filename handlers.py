@@ -1798,10 +1798,10 @@ class BotHandlers:
             await update.message.reply_text("❌ 查找用戶失敗")
 
     def _parse_financial_record(self, text: str) -> Optional[Dict]:
-        """解析金融記錄訊息格式，支援群主代記帳功能"""
+        """解析金融記錄訊息格式，支援群主代記帳功能和日期參數"""
         try:
             import re
-            from datetime import datetime
+            from datetime import datetime, date
 
             # 首先檢查是否包含必要的項目和金額欄位
             if not ('項目' in text and '金額' in text):
@@ -1809,12 +1809,39 @@ class BotHandlers:
 
             # 檢查是否為群主代記帳格式（@用戶名 在開頭）
             mentioned_user = None
+            record_date = None
             lines = text.strip().split('\n')
             first_line = lines[0].strip()
 
             # 檢查第一行是否以@開頭（群主代記帳格式）
             if first_line.startswith('@'):
-                mentioned_user = first_line[1:].strip()  # 移除@符號
+                # 支援格式：@N3 7/1 或 @N3
+                parts = first_line.split()
+                if len(parts) >= 2:
+                    mentioned_user = parts[0][1:].strip()  # 移除@符號
+                    # 檢查是否有日期參數
+                    if len(parts) >= 3:
+                        date_str = parts[1]
+                        # 解析日期格式 MM/DD
+                        try:
+                            month, day = map(int, date_str.split('/'))
+                            current_year = datetime.now().year
+                            record_date = date(current_year, month, day)
+                        except (ValueError, IndexError):
+                            logger.warning(f"Invalid date format: {date_str}")
+                    elif len(parts) == 2:
+                        # 檢查第二個部分是否為日期
+                        date_str = parts[1]
+                        try:
+                            month, day = map(int, date_str.split('/'))
+                            current_year = datetime.now().year
+                            record_date = date(current_year, month, day)
+                        except (ValueError, IndexError):
+                            # 不是日期格式，可能是其他參數
+                            pass
+                else:
+                    mentioned_user = first_line[1:].strip()  # 移除@符號
+                
                 # 重新組合文本，去掉第一行的@用戶名
                 text = '\n'.join(lines[1:])
                 lines = lines[1:]
@@ -1878,7 +1905,8 @@ class BotHandlers:
                 'amount': amount,
                 'code': code,
                 'account': account,
-                'mentioned_user': mentioned_user  # 新增：被@的用戶名
+                'mentioned_user': mentioned_user,  # 新增：被@的用戶名
+                'record_date': record_date  # 新增：指定的記錄日期
             }
 
         except Exception as e:
@@ -1932,14 +1960,15 @@ class BotHandlers:
                     payer_name = user.first_name or user.full_name or f"User{user.id}"
 
             # 判斷交易類型（正數為收入，負數為支出）
-            today = datetime.now().date()
+            # 使用指定日期或當前日期
+            transaction_date = record.get('record_date') or datetime.now().date()
             transaction_type = 'income' if record['amount'] >= 0 else 'expense'
             abs_amount = abs(record['amount'])  # 儲存絕對值
             
             success = await self.db.add_transaction(
                 user_id=target_user_id,
                 group_id=chat.id if chat.type in ['group', 'supergroup'] else 0,
-                transaction_date=today,
+                transaction_date=transaction_date,
                 currency='TW',
                 amount=abs_amount,
                 transaction_type=transaction_type,
@@ -1949,19 +1978,19 @@ class BotHandlers:
 
             if success:
                 # 格式化回報訊息
-                today_str = today.strftime('%Y/%m/%d')
+                date_str = transaction_date.strftime('%Y/%m/%d')
                 weekdays = ['一', '二', '三', '四', '五', '六', '日']
-                weekday = weekdays[today.weekday()]
+                weekday = weekdays[transaction_date.weekday()]
 
-                # 獲取今日和本月總計
-                daily_total = await self._get_daily_total(target_user_id, chat.id, today)
-                monthly_total = await self._get_monthly_total(target_user_id, chat.id, today.year, today.month)
+                # 獲取指定日期和本月總計
+                daily_total = await self._get_daily_total(target_user_id, chat.id, transaction_date)
+                monthly_total = await self._get_monthly_total(target_user_id, chat.id, transaction_date.year, transaction_date.month)
 
                 # 根據是否為代記帳調整回報訊息
                 if is_admin_proxy and mentioned_user:
                     response_msg = f"""已經收到代記帳紀錄！
 
-{today_str} ({weekday})
+{date_str} ({weekday})
 出款人：{payer_name} 金額：{record['amount']:,}
 記帳員：北金國際-M8P-Ann
 
@@ -1970,7 +1999,7 @@ class BotHandlers:
                 else:
                     response_msg = f"""已經收到代記帳紀錄！
 
-{today_str} ({weekday})
+{date_str} ({weekday})
 出款人：{payer_name} 金額：{record['amount']:,}
 記帳員：北金國際-M8P-Ann
 
